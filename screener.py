@@ -30,9 +30,18 @@ DATA_DIR = "data"
 FILTERED_FILE = os.path.join(DATA_DIR, "earnings_momentum_screen.csv")
 ALL_FILE = os.path.join(DATA_DIR, "earnings_momentum_all.csv")
 
+WKN_MAP = {
+    "DELL": "A2N6WP",
+    "ADBE": "871981",
+    "COST": "888351",
+    "DOCU": "A2JHLZ",
+}
+
 COLUMNS = [
     "symbol",
     "company",
+    "wkn",
+    "isin",
     "earnings_date",
     "current_close",
     "performance_2m_pct",
@@ -42,6 +51,9 @@ COLUMNS = [
     "score",
     "rating",
     "status",
+    "interpretation",
+    "action",
+    "chart_url",
 ]
 
 
@@ -57,6 +69,26 @@ def get_earnings_calendar(start_date, end_date):
         f"?from={start_date}&to={end_date}&apikey={FMP_API_KEY}"
     )
     return get_json(url)
+
+
+def get_company_profile(symbol):
+    url = (
+        "https://financialmodelingprep.com/stable/profile"
+        f"?symbol={symbol}&apikey={FMP_API_KEY}"
+    )
+
+    try:
+        data = get_json(url)
+    except Exception:
+        return {}
+
+    if isinstance(data, list) and data:
+        return data[0]
+
+    if isinstance(data, dict):
+        return data
+
+    return {}
 
 
 def get_historical_prices(symbol):
@@ -113,15 +145,15 @@ def calculate_momentum(df):
 def score_stock(momentum):
     score = 0
 
-    if momentum["performance_2m"] > 15:
+    if momentum["performance_2m"] >= 15:
         score += 30
-    if momentum["performance_2m"] > 25:
+    if momentum["performance_2m"] >= 25:
         score += 10
     if momentum["above_sma_20"]:
         score += 15
     if momentum["above_sma_50"]:
         score += 20
-    if momentum["distance_sma_50"] > 10:
+    if momentum["distance_sma_50"] >= 10:
         score += 10
 
     if score >= 80:
@@ -136,6 +168,111 @@ def score_stock(momentum):
     return score, rating
 
 
+def classify_stock(performance, min_performance):
+    if performance >= min_performance:
+        return (
+            "Treffer",
+            "Aktie erfüllt den eingestellten Momentum-Filter.",
+            "Detailanalyse prüfen",
+        )
+
+    if performance >= min_performance - 5:
+        return (
+            "Knapp darunter",
+            "Nahe am Filter, aber noch kein starkes Setup.",
+            "Watchlist",
+        )
+
+    if performance >= 5:
+        return (
+            "Unter Filter",
+            "Positives Momentum, aber zu schwach für dein Setup.",
+            "Nur beobachten",
+        )
+
+    if performance >= 0:
+        return (
+            "Unter Filter",
+            "Kaum Momentum. Kein institutioneller Vorlauf erkennbar.",
+            "Ignorieren",
+        )
+
+    return (
+        "Schwach",
+        "Negatives Momentum vor Earnings. Für diesen Screener uninteressant.",
+        "Ignorieren",
+    )
+
+
+def chart_url(symbol):
+    return f"https://www.tradingview.com/chart/?symbol=NASDAQ%3A{symbol}"
+
+
+def build_result_row(symbol, company, earnings_date, momentum, min_performance):
+    profile = get_company_profile(symbol)
+
+    company_name = (
+        company
+        if company and company != "n/a"
+        else profile.get("companyName")
+        or profile.get("companyNameLong")
+        or profile.get("name")
+        or symbol
+    )
+
+    isin = profile.get("isin") or profile.get("ISIN") or "n/a"
+    wkn = WKN_MAP.get(symbol, "n/a")
+
+    score, rating = score_stock(momentum)
+    performance = round(momentum["performance_2m"], 2)
+    status, interpretation, action = classify_stock(performance, min_performance)
+
+    return {
+        "symbol": symbol,
+        "company": company_name,
+        "wkn": wkn,
+        "isin": isin,
+        "earnings_date": earnings_date,
+        "current_close": round(momentum["current_close"], 2),
+        "performance_2m_pct": performance,
+        "above_sma_20": momentum["above_sma_20"],
+        "above_sma_50": momentum["above_sma_50"],
+        "distance_sma_50_pct": round(momentum["distance_sma_50"], 2),
+        "score": score,
+        "rating": rating,
+        "status": status,
+        "interpretation": interpretation,
+        "action": action,
+        "chart_url": chart_url(symbol),
+    }
+
+
+def analyze_single_symbol(symbol, min_performance_2m=15.0):
+    symbol = symbol.strip().upper()
+
+    if not symbol:
+        return None
+
+    prices = get_historical_prices(symbol)
+    momentum = calculate_momentum(prices)
+
+    if momentum is None:
+        return None
+
+    return pd.DataFrame(
+        [
+            build_result_row(
+                symbol=symbol,
+                company="",
+                earnings_date="nicht geprüft",
+                momentum=momentum,
+                min_performance=min_performance_2m,
+            )
+        ],
+        columns=COLUMNS,
+    )
+
+
 def run_screen(lookback_days=7, forward_days=14, min_performance_2m=15.0):
     os.makedirs(DATA_DIR, exist_ok=True)
 
@@ -148,15 +285,28 @@ def run_screen(lookback_days=7, forward_days=14, min_performance_2m=15.0):
     all_results = []
     skipped_no_symbol = 0
     skipped_no_prices = 0
+    symbols_seen = set()
 
     for item in earnings:
         symbol = item.get("symbol")
-        company = item.get("name")
+        company = (
+            item.get("companyName")
+            or item.get("name")
+            or item.get("company")
+            or "n/a"
+        )
         earnings_date = item.get("date")
 
         if not symbol:
             skipped_no_symbol += 1
             continue
+
+        symbol = symbol.upper().strip()
+
+        if symbol in symbols_seen:
+            continue
+
+        symbols_seen.add(symbol)
 
         try:
             prices = get_historical_prices(symbol)
@@ -166,30 +316,14 @@ def run_screen(lookback_days=7, forward_days=14, min_performance_2m=15.0):
                 skipped_no_prices += 1
                 continue
 
-            score, rating = score_stock(momentum)
-            performance = round(momentum["performance_2m"], 2)
-
-            if performance >= min_performance_2m:
-                status = "Treffer"
-            elif performance >= min_performance_2m - 5:
-                status = "Knapp darunter"
-            else:
-                status = "Unter Filter"
-
             all_results.append(
-                {
-                    "symbol": symbol,
-                    "company": company,
-                    "earnings_date": earnings_date,
-                    "current_close": round(momentum["current_close"], 2),
-                    "performance_2m_pct": performance,
-                    "above_sma_20": momentum["above_sma_20"],
-                    "above_sma_50": momentum["above_sma_50"],
-                    "distance_sma_50_pct": round(momentum["distance_sma_50"], 2),
-                    "score": score,
-                    "rating": rating,
-                    "status": status,
-                }
+                build_result_row(
+                    symbol=symbol,
+                    company=company,
+                    earnings_date=earnings_date,
+                    momentum=momentum,
+                    min_performance=min_performance_2m,
+                )
             )
 
         except Exception as error:
@@ -208,6 +342,13 @@ def run_screen(lookback_days=7, forward_days=14, min_performance_2m=15.0):
     all_df.to_csv(ALL_FILE, index=False)
     filtered_df.to_csv(FILTERED_FILE, index=False)
 
+    best_symbol = None
+    best_performance = None
+
+    if not all_df.empty:
+        best_symbol = all_df.iloc[0]["symbol"]
+        best_performance = all_df.iloc[0]["performance_2m_pct"]
+
     stats = {
         "earnings_found": len(earnings),
         "stocks_with_price_data": len(all_df),
@@ -217,6 +358,8 @@ def run_screen(lookback_days=7, forward_days=14, min_performance_2m=15.0):
         "start_date": str(start_date),
         "end_date": str(end_date),
         "min_performance_2m": min_performance_2m,
+        "best_symbol": best_symbol,
+        "best_performance": best_performance,
     }
 
     return filtered_df, all_df, stats
