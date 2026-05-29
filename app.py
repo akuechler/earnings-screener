@@ -29,42 +29,9 @@ st.markdown(
         }
 
         [data-testid="stSidebar"] input {
-            background: #0F1726 !important;
-            color: #FFFFFF !important;
+            background: #F8FAFC !important;
+            color: #111827 !important;
             border: 1px solid rgba(255,255,255,0.28) !important;
-        }
-
-        [data-baseweb="select"] {
-            background: #0F1726 !important;
-            color: #FFFFFF !important;
-            border-radius: 10px !important;
-        }
-
-        [data-baseweb="select"] * {
-            color: #FFFFFF !important;
-            opacity: 1 !important;
-        }
-
-        [data-baseweb="tag"] {
-            background: #2563EB !important;
-            color: #FFFFFF !important;
-            border-radius: 7px !important;
-        }
-
-        [data-baseweb="tag"] * {
-            color: #FFFFFF !important;
-            opacity: 1 !important;
-            font-weight: 800 !important;
-        }
-
-        [role="listbox"],
-        [role="option"] {
-            background: #111827 !important;
-            color: #FFFFFF !important;
-        }
-
-        [role="option"] * {
-            color: #FFFFFF !important;
         }
 
         .block-container {
@@ -81,6 +48,59 @@ st.markdown(
 
         p, span, div, label {
             color: inherit;
+        }
+
+        label,
+        [data-testid="stWidgetLabel"],
+        [data-testid="stWidgetLabel"] *,
+        [data-testid="stMarkdownContainer"] p {
+            color: #F8FAFC !important;
+            opacity: 1 !important;
+            font-weight: 750 !important;
+        }
+
+        input,
+        textarea {
+            color: #111827 !important;
+            background: #F8FAFC !important;
+        }
+
+        [data-baseweb="select"] > div {
+            background: #F8FAFC !important;
+            border: 1px solid rgba(15,23,42,0.35) !important;
+            border-radius: 10px !important;
+            min-height: 44px !important;
+        }
+
+        [data-baseweb="select"] input,
+        [data-baseweb="select"] span,
+        [data-baseweb="select"] div {
+            color: #111827 !important;
+            opacity: 1 !important;
+            font-weight: 750 !important;
+        }
+
+        [data-baseweb="popover"] {
+            z-index: 999999 !important;
+        }
+
+        [role="listbox"] {
+            background: #F8FAFC !important;
+            border: 1px solid rgba(15,23,42,0.22) !important;
+        }
+
+        [role="option"],
+        [role="option"] * {
+            background: #F8FAFC !important;
+            color: #111827 !important;
+            opacity: 1 !important;
+            font-weight: 750 !important;
+        }
+
+        [role="option"]:hover,
+        [role="option"]:hover * {
+            background: #DBEAFE !important;
+            color: #111827 !important;
         }
 
         .main-header {
@@ -145,14 +165,16 @@ st.markdown(
             font-weight: 900;
             opacity: 1;
             margin-bottom: 8px;
+            white-space: normal;
         }
 
         .kpi-value {
             color: #FFFFFF;
-            font-size: 28px;
+            font-size: 26px;
             font-weight: 950;
             line-height: 1.05;
             opacity: 1;
+            word-break: break-word;
         }
 
         .kpi-sub {
@@ -212,7 +234,7 @@ st.markdown(
             line-height: 1.45;
         }
 
-        .control-grid {
+        .control-panel {
             background: #1B263A;
             border: 1px solid rgba(255,255,255,0.22);
             border-radius: 20px;
@@ -236,19 +258,24 @@ st.markdown(
             margin-bottom: 14px;
         }
 
-        .active-filter-line {
-            display: inline-flex;
+        .filter-chip-line {
+            display: flex;
             flex-wrap: wrap;
-            gap: 6px;
+            gap: 8px;
+            margin-top: 8px;
+            margin-bottom: 8px;
+        }
+
+        .filter-chip {
+            display: inline-flex;
+            align-items: center;
             border-radius: 999px;
-            padding: 7px 12px;
+            padding: 6px 11px;
             font-size: 12px;
             font-weight: 850;
             background: rgba(37,99,235,0.28);
             border: 1px solid rgba(37,99,235,0.68);
             color: #DBEAFE;
-            margin-top: 10px;
-            margin-bottom: 8px;
         }
 
         .stock-card {
@@ -300,7 +327,7 @@ st.markdown(
             font-size: 11px;
             color: #FFFFFF;
             margin-bottom: 5px;
-            white-space: nowrap;
+            white-space: normal;
             font-weight: 900;
             opacity: 1;
         }
@@ -310,7 +337,7 @@ st.markdown(
             line-height: 1.15;
             font-weight: 950;
             color: #FFFFFF;
-            white-space: nowrap;
+            white-space: normal;
             opacity: 1;
         }
 
@@ -319,7 +346,7 @@ st.markdown(
             line-height: 1.15;
             font-weight: 950;
             color: #FFFFFF;
-            white-space: nowrap;
+            white-space: normal;
             opacity: 1;
         }
 
@@ -787,18 +814,6 @@ def kpi_card(label, value, sub=None, color_class=""):
     )
 
 
-def valid_value(value):
-    if value is None:
-        return False
-
-    if pd.isna(value):
-        return False
-
-    text = str(value).strip().lower()
-
-    return text not in ["", "n/a", "nan", "none", "null"]
-
-
 def sort_dataframe(df, sort_key):
     if df is None or df.empty:
         return df
@@ -931,17 +946,17 @@ def show_screening_summary(stats, all_df, hits_df):
 def show_top_control_panel(display_all):
     st.markdown(
         """
-        <div class="control-grid">
+        <div class="control-panel">
             <div class="control-title">Analyst Cockpit</div>
             <div class="control-text">
-                Oben steuerst du die Anzeige. Erweiterte Detailfilter sind eingeklappt, damit das Dashboard nicht wie ein Formular wirkt.
+                Hauptsteuerung für Sortierung, Ansicht und schnelle Qualitätsfilter. Detailfilter sind optional.
             </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    c1, c2, c3, c4 = st.columns([1.2, 1.2, 1, 1])
+    c1, c2, c3 = st.columns([1.2, 1.2, 1])
 
     with c1:
         sort_choice = st.selectbox(
@@ -976,20 +991,22 @@ def show_top_control_panel(display_all):
         )
 
     with c3:
-        only_hits = st.checkbox(
-            "Nur Momentum-Treffer",
-            value=False,
+        quick_filter = st.selectbox(
+            "Schnellfilter",
+            options=[
+                "Alle anzeigen",
+                "Nur Momentum-Treffer",
+                "Nur A-Setups",
+                "Nur A- und B-Setups",
+                "Nur Pre-Earnings",
+                "Nur Post-Earnings",
+            ],
+            index=0,
         )
+
+    c4, c5, c6, c7 = st.columns([1, 1, 1, 1])
 
     with c4:
-        chart_toggle = st.checkbox(
-            "Charts anzeigen",
-            value=show_chart_previews,
-        )
-
-    c5, c6, c7 = st.columns(3)
-
-    with c5:
         min_score_filter = st.slider(
             "Mindest-Score",
             min_value=0,
@@ -998,7 +1015,7 @@ def show_top_control_panel(display_all):
             step=5,
         )
 
-    with c6:
+    with c5:
         min_stage2_filter = st.slider(
             "Mindest-Stage-2",
             min_value=0,
@@ -1007,13 +1024,19 @@ def show_top_control_panel(display_all):
             step=5,
         )
 
-    with c7:
+    with c6:
         min_momentum_filter = st.slider(
             "Mindest-2M-Momentum",
             min_value=-50,
             max_value=200,
             value=-50,
             step=5,
+        )
+
+    with c7:
+        chart_toggle = st.checkbox(
+            "Charts anzeigen",
+            value=show_chart_previews,
         )
 
     sort_map = {
@@ -1031,54 +1054,73 @@ def show_top_control_panel(display_all):
 
     st.session_state.sort_key = sort_map.get(sort_choice, "score")
 
-    with st.expander("Erweiterte Filter öffnen"):
+    status_options = sorted(display_all["status"].dropna().unique())
+    setup_options = sorted(display_all["setup_type"].dropna().unique())
+    source_options = sorted(display_all["calendar_source"].dropna().unique())
+    stage_options = sorted(display_all["stage2_status"].dropna().unique())
+
+    status_filter = status_options
+    setup_type_filter = setup_options
+    source_filter = source_options
+    stage_filter = stage_options
+
+    show_advanced_filters = st.checkbox(
+        "Erweiterte Filter anzeigen",
+        value=False,
+    )
+
+    if show_advanced_filters:
         f1, f2, f3, f4 = st.columns(4)
 
         with f1:
-            status_filter = st.multiselect(
+            status_choice = st.selectbox(
                 "Status",
-                options=sorted(display_all["status"].dropna().unique()),
-                default=sorted(display_all["status"].dropna().unique()),
+                options=["Alle"] + status_options,
+                index=0,
             )
 
         with f2:
-            setup_type_filter = st.multiselect(
+            setup_choice = st.selectbox(
                 "Setup",
-                options=sorted(display_all["setup_type"].dropna().unique()),
-                default=sorted(display_all["setup_type"].dropna().unique()),
+                options=["Alle"] + setup_options,
+                index=0,
             )
 
         with f3:
-            source_filter = st.multiselect(
+            source_choice = st.selectbox(
                 "Earnings-Quelle",
-                options=sorted(display_all["calendar_source"].dropna().unique()),
-                default=sorted(display_all["calendar_source"].dropna().unique()),
+                options=["Alle"] + source_options,
+                index=0,
             )
 
         with f4:
-            stage_filter = st.multiselect(
+            stage_choice = st.selectbox(
                 "Stage-2-Status",
-                options=sorted(display_all["stage2_status"].dropna().unique()),
-                default=sorted(display_all["stage2_status"].dropna().unique()),
+                options=["Alle"] + stage_options,
+                index=0,
             )
 
-    sort_labels = {
-        "score": "Score absteigend",
-        "momentum": "2M-Momentum absteigend",
-        "stage2": "Stage 2 absteigend",
-        "ticker": "Ticker A–Z",
-        "earnings_date_asc": "Earnings früh → spät",
-        "earnings_date_desc": "Earnings spät → früh",
-        "distance_50": "Abstand zur 50-Tage-Linie absteigend",
-        "distance_200": "Abstand zur 200-Tage-Linie absteigend",
-        "market_cap": "Marktkapitalisierung absteigend",
-        "dollar_volume": "Dollar-Volumen absteigend",
-    }
+        if status_choice != "Alle":
+            status_filter = [status_choice]
+
+        if setup_choice != "Alle":
+            setup_type_filter = [setup_choice]
+
+        if source_choice != "Alle":
+            source_filter = [source_choice]
+
+        if stage_choice != "Alle":
+            stage_filter = [stage_choice]
 
     st.markdown(
         f"""
-        <div class="active-filter-line">
-            Aktive Sortierung: {sort_labels.get(st.session_state.sort_key, 'Score absteigend')} · Ansicht: {view_mode}
+        <div class="filter-chip-line">
+            <span class="filter-chip">Sortierung: {sort_choice}</span>
+            <span class="filter-chip">Ansicht: {view_mode}</span>
+            <span class="filter-chip">Schnellfilter: {quick_filter}</span>
+            <span class="filter-chip">Score ≥ {min_score_filter}</span>
+            <span class="filter-chip">Stage 2 ≥ {min_stage2_filter}</span>
+            <span class="filter-chip">2M ≥ {min_momentum_filter} %</span>
         </div>
         """,
         unsafe_allow_html=True,
@@ -1086,6 +1128,7 @@ def show_top_control_panel(display_all):
 
     return {
         "view_mode": view_mode,
+        "quick_filter": quick_filter,
         "status_filter": status_filter,
         "setup_type_filter": setup_type_filter,
         "source_filter": source_filter,
@@ -1093,7 +1136,6 @@ def show_top_control_panel(display_all):
         "min_score_filter": min_score_filter,
         "min_stage2_filter": min_stage2_filter,
         "min_momentum_filter": min_momentum_filter,
-        "only_hits": only_hits,
         "chart_toggle": chart_toggle,
     }
 
@@ -1112,8 +1154,22 @@ def apply_top_filters(df, filters):
         & (df["performance_2m_proxy_pct"] >= filters["min_momentum_filter"])
     ].copy()
 
-    if filters["only_hits"]:
+    quick_filter = filters["quick_filter"]
+
+    if quick_filter == "Nur Momentum-Treffer":
         filtered = filtered[filtered["performance_2m_proxy_pct"] >= min_performance]
+
+    elif quick_filter == "Nur A-Setups":
+        filtered = filtered[filtered["status"] == "A-Setup"]
+
+    elif quick_filter == "Nur A- und B-Setups":
+        filtered = filtered[filtered["status"].isin(["A-Setup", "B-Setup"])]
+
+    elif quick_filter == "Nur Pre-Earnings":
+        filtered = filtered[filtered["setup_type"] == "Pre-Earnings"]
+
+    elif quick_filter == "Nur Post-Earnings":
+        filtered = filtered[filtered["setup_type"] == "Post-Earnings"]
 
     return sort_dataframe(filtered, st.session_state.sort_key)
 
