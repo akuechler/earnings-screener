@@ -29,8 +29,10 @@ jobs:
         run: |
           python screener.py
 
-      - name: Ergebnis als Artefakt speichern
+      - name: Ergebnisse als Artefakt speichern
         uses: actions/upload-artifact@v4
         with:
           name: earnings-momentum-screen
-          path: data/earnings_momentum_screen.csv
+          path: |
+            data/earnings_momentum_screen.csv
+            data/earnings_momentum_all.csv
