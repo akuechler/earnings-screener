@@ -1,5 +1,5 @@
 pandas
 requests
 streamlit
-python-dotenv
 plotly
+tradingview-screener
