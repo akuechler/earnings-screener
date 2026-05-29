@@ -1,3 +1,5 @@
+from html import escape
+
 import pandas as pd
 import streamlit as st
 
@@ -273,25 +275,25 @@ st.markdown(
             color: #DBEAFE;
         }
 
-        .stock-card {
+        .stock-header {
             background: #162032;
             border: 1px solid rgba(255,255,255,0.18);
             border-radius: 22px;
             padding: 18px;
-            margin-bottom: 18px;
+            margin-bottom: 14px;
             box-shadow: 0 12px 28px rgba(0,0,0,0.30);
         }
 
-        .stock-card-hit {
+        .stock-header-hit {
             border-color: rgba(34,197,94,0.78);
             box-shadow: 0 0 0 1px rgba(34,197,94,0.24), 0 12px 28px rgba(0,0,0,0.30);
         }
 
-        .stock-card-watch {
+        .stock-header-watch {
             border-color: rgba(245,158,11,0.60);
         }
 
-        .stock-card-ignore {
+        .stock-header-ignore {
             border-color: rgba(239,68,68,0.55);
             opacity: 0.88;
         }
@@ -306,7 +308,7 @@ st.markdown(
         .stock-meta {
             color: #F1F5F9;
             font-size: 12px;
-            margin-bottom: 12px;
+            margin-bottom: 0;
             font-weight: 750;
         }
 
@@ -436,23 +438,24 @@ st.markdown(
 
         .news-box {
             background: #0F1726;
-            border: 1px solid rgba(255,255,255,0.18);
+            border: 1px solid rgba(255,255,255,0.20);
             border-radius: 16px;
-            padding: 12px 14px;
+            padding: 14px 16px;
             margin-top: 12px;
+            margin-bottom: 4px;
         }
 
         .news-title {
-            font-size: 14px;
+            font-size: 15px;
             font-weight: 950;
             color: #FFFFFF;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
         }
 
         .news-item {
-            border-top: 1px solid rgba(255,255,255,0.10);
-            padding-top: 8px;
-            margin-top: 8px;
+            border-top: 1px solid rgba(255,255,255,0.11);
+            padding-top: 9px;
+            margin-top: 9px;
         }
 
         .news-headline {
@@ -462,18 +465,53 @@ st.markdown(
             line-height: 1.35;
         }
 
+        .news-headline a {
+            color: #DBEAFE;
+            text-decoration: none;
+        }
+
+        .news-headline a:hover {
+            text-decoration: underline;
+        }
+
         .news-meta {
             font-size: 11px;
             color: #CBD5E1;
-            font-weight: 700;
-            margin-top: 3px;
+            font-weight: 750;
+            margin-top: 4px;
         }
 
         .news-summary {
             font-size: 12px;
             color: #E2E8F0;
             line-height: 1.35;
-            margin-top: 4px;
+            margin-top: 5px;
+        }
+
+        .news-actions {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .news-button {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 36px;
+            border-radius: 12px;
+            background: #2563EB;
+            color: #FFFFFF !important;
+            text-decoration: none !important;
+            font-size: 13px;
+            font-weight: 900;
+            border: 1px solid rgba(255,255,255,0.22);
+            box-shadow: 0 6px 16px rgba(37,99,235,0.22);
+        }
+
+        .news-button:hover {
+            background: #1D4ED8;
         }
 
         .stButton > button,
@@ -741,7 +779,7 @@ def format_news_date(value):
         return "n/a"
 
     try:
-        parsed = pd.to_datetime(value, errors="coerce", unit=None)
+        parsed = pd.to_datetime(value, errors="coerce")
 
         if pd.isna(parsed):
             return str(value)
@@ -830,9 +868,9 @@ def show_chart_preview(ticker):
     st.markdown(
         f"""
         <div class="chart-wrap">
-            <img src="{url}" alt="Chart {ticker}" />
+            <img src="{escape(url)}" alt="Chart {escape(ticker)}" />
             <div class="chart-caption">
-                Chart-Vorschau {ticker} · Für Detailanalyse den TradingView-Link öffnen
+                Chart-Vorschau {escape(ticker)} · Für Detailanalyse den TradingView-Link öffnen
             </div>
         </div>
         """,
@@ -843,8 +881,8 @@ def show_chart_preview(ticker):
 def metric_box(label, value, css_class=""):
     return f"""
     <div class="metric-box">
-        <div class="metric-label">{label}</div>
-        <div class="metric-value {css_class}">{value}</div>
+        <div class="metric-label">{escape(str(label))}</div>
+        <div class="metric-value {escape(str(css_class))}">{escape(str(value))}</div>
     </div>
     """
 
@@ -852,8 +890,8 @@ def metric_box(label, value, css_class=""):
 def metric_box_small(label, value, css_class=""):
     return f"""
     <div class="metric-box">
-        <div class="metric-label">{label}</div>
-        <div class="metric-value-small {css_class}">{value}</div>
+        <div class="metric-label">{escape(str(label))}</div>
+        <div class="metric-value-small {escape(str(css_class))}">{escape(str(value))}</div>
     </div>
     """
 
@@ -862,13 +900,13 @@ def kpi_card(label, value, sub=None, color_class=""):
     sub_html = ""
 
     if sub:
-        sub_html = f'<div class="kpi-sub {color_class}">{sub}</div>'
+        sub_html = f'<div class="kpi-sub {escape(str(color_class))}">{escape(str(sub))}</div>'
 
     st.markdown(
         f"""
         <div class="kpi-card">
-            <div class="kpi-label">{label}</div>
-            <div class="kpi-value">{value}</div>
+            <div class="kpi-label">{escape(str(label))}</div>
+            <div class="kpi-value">{escape(str(value))}</div>
             {sub_html}
         </div>
         """,
@@ -884,63 +922,55 @@ def show_news_block(symbol, company, limit):
     de_url = google_news_de_url(symbol, company)
     en_url = google_news_en_url(symbol, company)
 
-    st.markdown(
-        """
-        <div class="news-box">
-            <div class="news-title">Aktuelle News</div>
-        """,
-        unsafe_allow_html=True,
-    )
+    items_html = ""
 
     if not news_items:
-        st.markdown(
-            """
+        items_html = """
             <div class="news-item">
                 <div class="news-headline">Keine API-News gefunden.</div>
                 <div class="news-meta">Nutze die externen News-Links für manuelle Prüfung.</div>
             </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        """
     else:
         for item in news_items[:limit]:
-            title = item.get("title", "Ohne Titel")
-            url = item.get("url", "")
-            source = item.get("source", "n/a")
-            published = format_news_date(item.get("published"))
-            summary = item.get("summary", "")
-
-            headline_html = title
+            title = escape(str(item.get("title", "Ohne Titel")))
+            url = escape(str(item.get("url", "")))
+            source = escape(str(item.get("source", "n/a")))
+            published = escape(format_news_date(item.get("published")))
+            summary = str(item.get("summary", "") or "")
 
             if url:
-                headline_html = f'<a href="{url}" target="_blank" style="color:#DBEAFE;text-decoration:none;">{title}</a>'
+                headline_html = f'<a href="{url}" target="_blank" rel="noopener noreferrer">{title}</a>'
+            else:
+                headline_html = title
 
             summary_html = ""
 
             if summary:
                 summary_short = summary[:220] + "..." if len(summary) > 220 else summary
-                summary_html = f'<div class="news-summary">{summary_short}</div>'
+                summary_html = f'<div class="news-summary">{escape(summary_short)}</div>'
 
-            st.markdown(
-                f"""
+            items_html += f"""
                 <div class="news-item">
                     <div class="news-headline">{headline_html}</div>
                     <div class="news-meta">{source} · {published}</div>
                     {summary_html}
                 </div>
-                """,
-                unsafe_allow_html=True,
-            )
+            """
 
-    c1, c2 = st.columns(2)
-
-    with c1:
-        st.link_button("DE News öffnen", de_url, use_container_width=True)
-
-    with c2:
-        st.link_button("EN News öffnen", en_url, use_container_width=True)
-
-    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown(
+        f"""
+        <div class="news-box">
+            <div class="news-title">Aktuelle News</div>
+            {items_html}
+            <div class="news-actions">
+                <a class="news-button" href="{escape(de_url)}" target="_blank" rel="noopener noreferrer">DE News öffnen</a>
+                <a class="news-button" href="{escape(en_url)}" target="_blank" rel="noopener noreferrer">EN News öffnen</a>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def sort_dataframe(df, sort_key):
@@ -1008,9 +1038,11 @@ def show_screening_summary(stats, all_df, hits_df):
         <div class="panel">
             <div class="panel-title">Screening-Übersicht</div>
             <div class="panel-text">
-                Zeitraum: <b>{start_date}</b> bis <b>{end_date}</b><br>
-                Qualitätsfilter: Kurs ≥ {stats.get("min_price")} USD · Market Cap ≥ {stats.get("min_market_cap_m")} Mio. USD ·
-                Volumen ≥ {format_number(stats.get("min_volume"))} · Dollar-Volumen ≥ {stats.get("min_dollar_volume_m")} Mio. USD
+                Zeitraum: <b>{escape(start_date)}</b> bis <b>{escape(end_date)}</b><br>
+                Qualitätsfilter: Kurs ≥ {escape(str(stats.get("min_price")))} USD ·
+                Market Cap ≥ {escape(str(stats.get("min_market_cap_m")))} Mio. USD ·
+                Volumen ≥ {escape(format_number(stats.get("min_volume")))} ·
+                Dollar-Volumen ≥ {escape(str(stats.get("min_dollar_volume_m")))} Mio. USD
             </div>
         </div>
         """,
@@ -1058,13 +1090,14 @@ def show_screening_summary(stats, all_df, hits_df):
             f"""
             <div class="top-candidate">
                 <div class="top-candidate-label">Bester Kandidat nach Score</div>
-                <div class="top-candidate-title">{best.get("company", "n/a")} ({best.get("symbol", "n/a")})</div>
+                <div class="top-candidate-title">{escape(str(best.get("company", "n/a")))} ({escape(str(best.get("symbol", "n/a")))})</div>
                 <div class="top-candidate-meta">
-                    Status: <b>{best.get("status", "n/a")}</b> · Setup: <b>{best.get("setup_type", "n/a")}</b> ·
-                    Earnings: <b>{format_date_de(best.get("earnings_date"))}</b> ·
+                    Status: <b>{escape(str(best.get("status", "n/a")))}</b> ·
+                    Setup: <b>{escape(str(best.get("setup_type", "n/a")))}</b> ·
+                    Earnings: <b>{escape(format_date_de(best.get("earnings_date")))}</b> ·
                     Score: <b>{int(best.get("score", 0))} %</b> ·
                     Stage 2: <b>{int(best.get("stage2_score", 0))} %</b> ·
-                    2M-Momentum: <b>{format_percent(best.get("performance_2m_proxy_pct"))}</b>
+                    2M-Momentum: <b>{escape(format_percent(best.get("performance_2m_proxy_pct")))}</b>
                 </div>
             </div>
             """,
@@ -1249,9 +1282,9 @@ def show_top_control_panel(display_all):
     st.markdown(
         f"""
         <div class="filter-chip-line">
-            <span class="filter-chip">Sortierung: {sort_choice}</span>
-            <span class="filter-chip">Ansicht: {view_mode}</span>
-            <span class="filter-chip">Schnellfilter: {quick_filter}</span>
+            <span class="filter-chip">Sortierung: {escape(sort_choice)}</span>
+            <span class="filter-chip">Ansicht: {escape(view_mode)}</span>
+            <span class="filter-chip">Schnellfilter: {escape(quick_filter)}</span>
             <span class="filter-chip">Score ≥ {min_score_filter}</span>
             <span class="filter-chip">Stage 2 ≥ {min_stage2_filter}</span>
             <span class="filter-chip">2M ≥ {min_momentum_filter} %</span>
@@ -1336,21 +1369,21 @@ def show_candidate_cards(df, title, empty_message, limit=20, show_charts=True, s
         quality_reason = row.get("quality_reason", "n/a")
 
         if status in ["A-Setup", "Post-Earnings Winner"]:
-            card_class = "stock-card-hit"
+            card_class = "stock-header-hit"
         elif status in ["B-Setup", "Treffer", "Watchlist"]:
-            card_class = "stock-card-watch"
+            card_class = "stock-header-watch"
         elif status == "Ignore":
-            card_class = "stock-card-ignore"
+            card_class = "stock-header-ignore"
         else:
             card_class = ""
 
         st.markdown(
             f"""
-            <div class="stock-card {card_class}">
-                <div class="stock-title">{company} ({ticker})</div>
+            <div class="stock-header {card_class}">
+                <div class="stock-title">{escape(str(company))} ({escape(str(ticker))})</div>
                 <div class="stock-meta">
-                    WKN: {wkn} · Börse: {exchange} · Setup: {setup_type} ·
-                    Earnings-Datum: {row['Datum']} · Earnings-Quelle: {source}
+                    WKN: {escape(str(wkn))} · Börse: {escape(str(exchange))} · Setup: {escape(str(setup_type))} ·
+                    Earnings-Datum: {escape(str(row["Datum"]))} · Earnings-Quelle: {escape(str(source))}
                 </div>
             </div>
             """,
@@ -1423,19 +1456,19 @@ def show_candidate_cards(df, title, empty_message, limit=20, show_charts=True, s
             st.markdown(
                 f"""
                 <div class="badge-row">
-                    <span class="badge {status_badge_class(status)}">{status}</span>
-                    <span class="badge">{rating_badge(rating)}</span>
-                    <span class="badge">{stage2_status}</span>
-                    <span class="badge">{setup_type}</span>
-                    <span class="badge">Rel. SPY: {row['Relativ zu SPY']}</span>
-                    <span class="badge">Rel. QQQ: {row['Relativ zu QQQ']}</span>
-                    <span class="badge">1M: {row['1M']}</span>
-                    <span class="badge">3M: {row['3M']}</span>
-                    <span class="badge">6M: {row['6M']}</span>
+                    <span class="badge {status_badge_class(status)}">{escape(str(status))}</span>
+                    <span class="badge">{escape(str(rating_badge(rating)))}</span>
+                    <span class="badge">{escape(str(stage2_status))}</span>
+                    <span class="badge">{escape(str(setup_type))}</span>
+                    <span class="badge">Rel. SPY: {escape(str(row["Relativ zu SPY"]))}</span>
+                    <span class="badge">Rel. QQQ: {escape(str(row["Relativ zu QQQ"]))}</span>
+                    <span class="badge">1M: {escape(str(row["1M"]))}</span>
+                    <span class="badge">3M: {escape(str(row["3M"]))}</span>
+                    <span class="badge">6M: {escape(str(row["6M"]))}</span>
                 </div>
                 <div class="info-line">
-                    <b>Aktion:</b> {action} · <b>Kursdaten:</b> {data_source}<br>
-                    <b>Qualität:</b> {quality_reason}
+                    <b>Aktion:</b> {escape(str(action))} · <b>Kursdaten:</b> {escape(str(data_source))}<br>
+                    <b>Qualität:</b> {escape(str(quality_reason))}
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -1444,25 +1477,8 @@ def show_candidate_cards(df, title, empty_message, limit=20, show_charts=True, s
             if interpretation:
                 st.info(interpretation)
 
-            b1, b2, b3 = st.columns(3)
-
-            with b1:
-                if chart_url:
-                    st.link_button("TradingView öffnen", chart_url, use_container_width=True)
-
-            with b2:
-                st.link_button(
-                    "DE News",
-                    google_news_de_url(ticker, company),
-                    use_container_width=True,
-                )
-
-            with b3:
-                st.link_button(
-                    "EN News",
-                    google_news_en_url(ticker, company),
-                    use_container_width=True,
-                )
+            if chart_url:
+                st.link_button("TradingView öffnen", chart_url, use_container_width=True)
 
             if show_news_items:
                 show_news_block(ticker, company, max_news_per_stock)
