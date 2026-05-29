@@ -357,6 +357,22 @@ st.markdown(
 )
 
 
+if "sort_key" not in st.session_state:
+    st.session_state.sort_key = "score"
+
+if "hits_df" not in st.session_state:
+    st.session_state.hits_df = None
+
+if "all_df" not in st.session_state:
+    st.session_state.all_df = None
+
+if "stats" not in st.session_state:
+    st.session_state.stats = None
+
+if "has_results" not in st.session_state:
+    st.session_state.has_results = False
+
+
 st.sidebar.header("Steuerung")
 
 lookback_days = st.sidebar.slider(
@@ -638,16 +654,13 @@ def sort_dataframe(df, sort_key):
     return sorted_df.sort_values("score", ascending=False)
 
 
-def show_sort_buttons(position_label=""):
-    if "sort_key" not in st.session_state:
-        st.session_state.sort_key = "score"
-
+def show_sort_buttons():
     st.markdown(
-        f"""
+        """
         <div class="sort-panel">
-            <div class="sort-title">Sortierung {position_label}</div>
+            <div class="sort-title">Sortierung</div>
             <div class="sort-hint">
-                Diese Sortierung wirkt auf die Aktienkarten unten und auf die kompakte Tabelle.
+                Diese Sortierung wirkt auf die Treffer und auf alle Kandidaten. Die Ergebnisse bleiben beim Sortieren gespeichert.
             </div>
         </div>
         """,
@@ -657,37 +670,37 @@ def show_sort_buttons(position_label=""):
     b1, b2, b3, b4 = st.columns(4)
 
     with b1:
-        if st.button("Score ↓", use_container_width=True, key=f"sort_score_{position_label}"):
+        if st.button("Score ↓", use_container_width=True, key="sort_score_top"):
             st.session_state.sort_key = "score"
 
     with b2:
-        if st.button("2M-Momentum ↓", use_container_width=True, key=f"sort_momentum_{position_label}"):
+        if st.button("2M-Momentum ↓", use_container_width=True, key="sort_momentum_top"):
             st.session_state.sort_key = "momentum"
 
     with b3:
-        if st.button("Stage 2 ↓", use_container_width=True, key=f"sort_stage2_{position_label}"):
+        if st.button("Stage 2 ↓", use_container_width=True, key="sort_stage2_top"):
             st.session_state.sort_key = "stage2"
 
     with b4:
-        if st.button("Ticker A–Z", use_container_width=True, key=f"sort_ticker_{position_label}"):
+        if st.button("Ticker A–Z", use_container_width=True, key="sort_ticker_top"):
             st.session_state.sort_key = "ticker"
 
     b5, b6, b7, b8 = st.columns(4)
 
     with b5:
-        if st.button("Earnings früh → spät", use_container_width=True, key=f"sort_earnings_asc_{position_label}"):
+        if st.button("Earnings früh → spät", use_container_width=True, key="sort_earnings_asc_top"):
             st.session_state.sort_key = "earnings_date_asc"
 
     with b6:
-        if st.button("Earnings spät → früh", use_container_width=True, key=f"sort_earnings_desc_{position_label}"):
+        if st.button("Earnings spät → früh", use_container_width=True, key="sort_earnings_desc_top"):
             st.session_state.sort_key = "earnings_date_desc"
 
     with b7:
-        if st.button("Abstand 50-Tage ↓", use_container_width=True, key=f"sort_distance50_{position_label}"):
+        if st.button("Abstand 50-Tage ↓", use_container_width=True, key="sort_distance50_top"):
             st.session_state.sort_key = "distance_50"
 
     with b8:
-        if st.button("Abstand 200-Tage ↓", use_container_width=True, key=f"sort_distance200_{position_label}"):
+        if st.button("Abstand 200-Tage ↓", use_container_width=True, key="sort_distance200_top"):
             st.session_state.sort_key = "distance_200"
 
     sort_labels = {
@@ -1013,19 +1026,30 @@ if manual_check:
     st.stop()
 
 
-if not run_now:
+if run_now:
+    with st.spinner("Screener läuft. TradingView-Daten werden geladen und gefiltert..."):
+        hits_df, all_df, stats = run_screen(
+            lookback_days=lookback_days,
+            forward_days=forward_days,
+            min_performance_2m=min_performance,
+            tradingview_limit=tradingview_limit,
+        )
+
+    st.session_state.hits_df = hits_df
+    st.session_state.all_df = all_df
+    st.session_state.stats = stats
+    st.session_state.has_results = True
+
+
+if not st.session_state.has_results:
     st.info("Klicke links auf **Screener jetzt ausführen**.")
     show_explanation_box(min_performance)
     st.stop()
 
 
-with st.spinner("Screener läuft. TradingView-Daten werden geladen und gefiltert..."):
-    hits_df, all_df, stats = run_screen(
-        lookback_days=lookback_days,
-        forward_days=forward_days,
-        min_performance_2m=min_performance,
-        tradingview_limit=tradingview_limit,
-    )
+hits_df = st.session_state.hits_df
+all_df = st.session_state.all_df
+stats = st.session_state.stats
 
 
 if stats.get("tradingview_error"):
@@ -1035,19 +1059,16 @@ show_screening_summary(stats)
 
 st.divider()
 
-if all_df.empty:
+if all_df is None or all_df.empty:
     st.warning("Keine Kandidaten mit verwertbaren TradingView-Performance-Daten.")
     show_explanation_box(min_performance)
     st.stop()
 
 
 display_all = prepare_display_df(all_df)
-display_hits = prepare_display_df(hits_df)
-
 
 st.subheader("Sortierung")
-
-show_sort_buttons("oben")
+show_sort_buttons()
 
 hits_sorted = sort_dataframe(hits_df, st.session_state.sort_key)
 all_sorted = sort_dataframe(all_df, st.session_state.sort_key)
