@@ -1,5 +1,6 @@
 import os
 from datetime import date, timedelta
+from io import StringIO
 
 import pandas as pd
 import requests
@@ -54,6 +55,54 @@ WKN_MAP = {
     "IBM": "851399",
 }
 
+COMPANY_FALLBACK_MAP = {
+    "DELL": "Dell Technologies Inc.",
+    "ADBE": "Adobe Inc.",
+    "COST": "Costco Wholesale Corporation",
+    "DOCU": "DocuSign Inc.",
+    "NVDA": "NVIDIA Corporation",
+    "MSFT": "Microsoft Corporation",
+    "AAPL": "Apple Inc.",
+    "AMZN": "Amazon.com Inc.",
+    "GOOGL": "Alphabet Inc.",
+    "GOOG": "Alphabet Inc.",
+    "META": "Meta Platforms Inc.",
+    "TSLA": "Tesla Inc.",
+    "AMD": "Advanced Micro Devices Inc.",
+    "AVGO": "Broadcom Inc.",
+    "MU": "Micron Technology Inc.",
+    "CRM": "Salesforce Inc.",
+    "ORCL": "Oracle Corporation",
+    "INTC": "Intel Corporation",
+    "NFLX": "Netflix Inc.",
+    "QCOM": "Qualcomm Inc.",
+    "IBM": "International Business Machines Corporation",
+}
+
+EXCHANGE_FALLBACK_MAP = {
+    "DELL": "NYSE",
+    "ADBE": "NASDAQ",
+    "COST": "NASDAQ",
+    "DOCU": "NASDAQ",
+    "NVDA": "NASDAQ",
+    "MSFT": "NASDAQ",
+    "AAPL": "NASDAQ",
+    "AMZN": "NASDAQ",
+    "GOOGL": "NASDAQ",
+    "GOOG": "NASDAQ",
+    "META": "NASDAQ",
+    "TSLA": "NASDAQ",
+    "AMD": "NASDAQ",
+    "AVGO": "NASDAQ",
+    "MU": "NASDAQ",
+    "CRM": "NYSE",
+    "ORCL": "NYSE",
+    "INTC": "NASDAQ",
+    "NFLX": "NASDAQ",
+    "QCOM": "NASDAQ",
+    "IBM": "NYSE",
+}
+
 COLUMNS = [
     "symbol",
     "company",
@@ -72,6 +121,7 @@ COLUMNS = [
     "interpretation",
     "action",
     "chart_url",
+    "data_source",
 ]
 
 
@@ -109,7 +159,7 @@ def get_company_profile(symbol):
     return {}
 
 
-def get_historical_prices(symbol):
+def get_historical_prices_from_fmp(symbol):
     url = (
         "https://financialmodelingprep.com/stable/historical-price-eod/full"
         f"?symbol={symbol}&apikey={FMP_API_KEY}"
@@ -126,9 +176,66 @@ def get_historical_prices(symbol):
         return None
 
     df["date"] = pd.to_datetime(df["date"])
+    df["close"] = pd.to_numeric(df["close"], errors="coerce")
+    df = df.dropna(subset=["date", "close"])
     df = df.sort_values("date")
 
+    if df.empty:
+        return None
+
+    df["data_source"] = "FMP"
     return df
+
+
+def get_historical_prices_from_stooq(symbol):
+    symbol = symbol.lower().strip()
+
+    url = f"https://stooq.com/q/d/l/?s={symbol}.us&i=d"
+
+    response = requests.get(url, timeout=30)
+    response.raise_for_status()
+
+    text = response.text.strip()
+
+    if not text or "No data" in text:
+        return None
+
+    df = pd.read_csv(StringIO(text))
+
+    if "Date" not in df.columns or "Close" not in df.columns:
+        return None
+
+    df = df.rename(columns={"Date": "date", "Close": "close"})
+    df["date"] = pd.to_datetime(df["date"])
+    df["close"] = pd.to_numeric(df["close"], errors="coerce")
+    df = df.dropna(subset=["date", "close"])
+    df = df.sort_values("date")
+
+    if df.empty:
+        return None
+
+    df["data_source"] = "Stooq"
+    return df
+
+
+def get_historical_prices(symbol):
+    symbol = symbol.upper().strip()
+
+    try:
+        df = get_historical_prices_from_fmp(symbol)
+        if df is not None and len(df) >= 50:
+            return df
+    except Exception as error:
+        print(f"FMP-Kursdaten fehlgeschlagen bei {symbol}: {error}")
+
+    try:
+        df = get_historical_prices_from_stooq(symbol)
+        if df is not None and len(df) >= 50:
+            return df
+    except Exception as error:
+        print(f"Stooq-Kursdaten fehlgeschlagen bei {symbol}: {error}")
+
+    return None
 
 
 def calculate_momentum(df):
@@ -149,6 +256,11 @@ def calculate_momentum(df):
     if sma_50 <= 0:
         return None
 
+    data_source = "n/a"
+
+    if "data_source" in df.columns:
+        data_source = str(df.iloc[-1]["data_source"])
+
     return {
         "current_close": current_close,
         "performance_2m": performance_2m,
@@ -157,6 +269,7 @@ def calculate_momentum(df):
         "above_sma_20": current_close > sma_20,
         "above_sma_50": current_close > sma_50,
         "distance_sma_50": (current_close / sma_50 - 1) * 100,
+        "data_source": data_source,
     }
 
 
@@ -262,6 +375,7 @@ def build_result_row(symbol, company, earnings_date, momentum, min_performance):
         profile.get("companyName")
         or profile.get("companyNameLong")
         or profile.get("name")
+        or COMPANY_FALLBACK_MAP.get(symbol)
         or company
         or symbol
     )
@@ -272,6 +386,7 @@ def build_result_row(symbol, company, earnings_date, momentum, min_performance):
     exchange = (
         profile.get("exchangeShortName")
         or profile.get("exchange")
+        or EXCHANGE_FALLBACK_MAP.get(symbol)
         or "NASDAQ"
     )
 
@@ -297,6 +412,7 @@ def build_result_row(symbol, company, earnings_date, momentum, min_performance):
         "interpretation": interpretation,
         "action": action,
         "chart_url": chart_url(symbol, exchange),
+        "data_source": momentum.get("data_source", "n/a"),
     }
 
 
@@ -306,24 +422,29 @@ def analyze_single_symbol(symbol, min_performance_2m=15.0):
     if not symbol:
         return None
 
-    prices = get_historical_prices(symbol)
-    momentum = calculate_momentum(prices)
+    try:
+        prices = get_historical_prices(symbol)
+        momentum = calculate_momentum(prices)
 
-    if momentum is None:
+        if momentum is None:
+            return None
+
+        return pd.DataFrame(
+            [
+                build_result_row(
+                    symbol=symbol,
+                    company="",
+                    earnings_date="nicht geprüft",
+                    momentum=momentum,
+                    min_performance=min_performance_2m,
+                )
+            ],
+            columns=COLUMNS,
+        )
+
+    except Exception as error:
+        print(f"Manuelle Prüfung fehlgeschlagen bei {symbol}: {error}")
         return None
-
-    return pd.DataFrame(
-        [
-            build_result_row(
-                symbol=symbol,
-                company="",
-                earnings_date="nicht geprüft",
-                momentum=momentum,
-                min_performance=min_performance_2m,
-            )
-        ],
-        columns=COLUMNS,
-    )
 
 
 def run_screen(lookback_days=7, forward_days=14, min_performance_2m=15.0):
@@ -333,7 +454,11 @@ def run_screen(lookback_days=7, forward_days=14, min_performance_2m=15.0):
     start_date = today - timedelta(days=lookback_days)
     end_date = today + timedelta(days=forward_days)
 
-    earnings = get_earnings_calendar(start_date, end_date)
+    try:
+        earnings = get_earnings_calendar(start_date, end_date)
+    except Exception as error:
+        print(f"Earnings-Kalender konnte nicht geladen werden: {error}")
+        earnings = []
 
     all_results = []
     skipped_no_symbol = 0
@@ -380,6 +505,7 @@ def run_screen(lookback_days=7, forward_days=14, min_performance_2m=15.0):
             )
 
         except Exception as error:
+            skipped_no_prices += 1
             print(f"Fehler bei {symbol}: {error}")
 
     all_df = pd.DataFrame(all_results, columns=COLUMNS)
