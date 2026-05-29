@@ -137,8 +137,8 @@ def prepare_display_df(df):
     display["3M"] = display["performance_3m_pct"].apply(format_percent)
     display["Rel. SPY"] = display["spy_relative_proxy_pct"].apply(format_percent)
     display["Rel. QQQ"] = display["qqq_relative_proxy_pct"].apply(format_percent)
-    display["Abstand 50T"] = display["distance_sma_50_pct"].apply(format_percent)
-    display["Abstand 200T"] = display["distance_sma_200_pct"].apply(format_percent)
+    display["Abstand 50 Tage Linie"] = display["distance_sma_50_pct"].apply(format_percent)
+    display["Abstand 200 Tage Linie"] = display["distance_sma_200_pct"].apply(format_percent)
     display["Statusanzeige"] = display["status"].apply(status_badge)
     display["Ratinganzeige"] = display["rating"].apply(rating_badge)
 
@@ -243,8 +243,8 @@ def show_compact_table(df, title):
             "Datum",
             "Kurs",
             "2M",
-            "Abstand 50 Tage Linie",
-            "Abstand 200 Tage Linie",
+            "Abstand 50T",
+            "Abstand 200T",
             "stage2_score",
             "score",
             "Statusanzeige",
