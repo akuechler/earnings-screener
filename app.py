@@ -9,7 +9,7 @@ st.set_page_config(
     layout="wide",
 )
 
-st.title("Earnings Momentum Screener")
+st.title("Earnings Momentum Screener von Andreas")
 st.caption(
     "TradingView-basierter Earnings-Momentum-Screener. "
     "TradingView ist die Hauptquelle. FMP/Finnhub ergänzen Earnings-Termine."
