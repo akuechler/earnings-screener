@@ -586,37 +586,10 @@ if "has_results" not in st.session_state:
 
 st.sidebar.header("Screening")
 
-lookback_days = st.sidebar.slider(
-    "Rückblick in Kalendertagen",
-    min_value=0,
-    max_value=21,
-    value=0,
-    step=1,
-)
-
-forward_days = st.sidebar.slider(
-    "Ausblick in Kalendertagen",
-    min_value=3,
-    max_value=30,
-    value=14,
-    step=1,
-)
-
-min_performance = st.sidebar.slider(
-    "Momentum-Filter in %",
-    min_value=0.0,
-    max_value=50.0,
-    value=15.0,
-    step=1.0,
-)
-
-tradingview_limit = st.sidebar.slider(
-    "TradingView Universe-Limit",
-    min_value=1000,
-    max_value=20000,
-    value=10000,
-    step=1000,
-)
+lookback_days = st.sidebar.slider("Rückblick in Kalendertagen", 0, 21, 0, 1)
+forward_days = st.sidebar.slider("Ausblick in Kalendertagen", 3, 30, 14, 1)
+min_performance = st.sidebar.slider("Momentum-Filter in %", 0.0, 50.0, 15.0, 1.0)
+tradingview_limit = st.sidebar.slider("TradingView Universe-Limit", 1000, 20000, 10000, 1000)
 
 setup_filter = st.sidebar.selectbox(
     "Earnings-Setup",
@@ -627,10 +600,7 @@ setup_filter = st.sidebar.selectbox(
 st.sidebar.divider()
 st.sidebar.header("Qualitätsfilter")
 
-apply_quality_filter = st.sidebar.checkbox(
-    "Qualitätsfilter aktiv",
-    value=True,
-)
+apply_quality_filter = st.sidebar.checkbox("Qualitätsfilter aktiv", value=True)
 
 allowed_exchanges = st.sidebar.multiselect(
     "Erlaubte Börsen",
@@ -638,81 +608,25 @@ allowed_exchanges = st.sidebar.multiselect(
     default=["NASDAQ", "NYSE", "AMEX"],
 )
 
-exclude_otc = st.sidebar.checkbox(
-    "OTC ausschließen",
-    value=True,
-)
-
-min_price = st.sidebar.slider(
-    "Mindestkurs USD",
-    min_value=0.0,
-    max_value=100.0,
-    value=10.0,
-    step=1.0,
-)
-
-min_market_cap_m = st.sidebar.slider(
-    "Mindest-Marktkapitalisierung Mio. USD",
-    min_value=0.0,
-    max_value=10000.0,
-    value=500.0,
-    step=100.0,
-)
-
-min_volume = st.sidebar.slider(
-    "Mindestvolumen Aktien/Tag",
-    min_value=0,
-    max_value=5_000_000,
-    value=500_000,
-    step=100_000,
-)
-
-min_dollar_volume_m = st.sidebar.slider(
-    "Mindest-Dollar-Volumen Mio. USD",
-    min_value=0.0,
-    max_value=500.0,
-    value=20.0,
-    step=5.0,
-)
+exclude_otc = st.sidebar.checkbox("OTC ausschließen", value=True)
+min_price = st.sidebar.slider("Mindestkurs USD", 0.0, 100.0, 10.0, 1.0)
+min_market_cap_m = st.sidebar.slider("Mindest-Marktkapitalisierung Mio. USD", 0.0, 10000.0, 500.0, 100.0)
+min_volume = st.sidebar.slider("Mindestvolumen Aktien/Tag", 0, 5_000_000, 500_000, 100_000)
+min_dollar_volume_m = st.sidebar.slider("Mindest-Dollar-Volumen Mio. USD", 0.0, 500.0, 20.0, 5.0)
 
 st.sidebar.divider()
 st.sidebar.header("Darstellung")
 
-show_chart_previews = st.sidebar.checkbox(
-    "Chart-Vorschau anzeigen",
-    value=True,
-)
-
-show_news = st.sidebar.checkbox(
-    "News in Karten anzeigen",
-    value=True,
-)
-
-max_news_per_stock = st.sidebar.slider(
-    "News je Aktie",
-    min_value=1,
-    max_value=5,
-    value=3,
-    step=1,
-)
-
-max_cards = st.sidebar.slider(
-    "Maximale Karten anzeigen",
-    min_value=5,
-    max_value=50,
-    value=20,
-    step=5,
-)
+show_chart_previews = st.sidebar.checkbox("Chart-Vorschau anzeigen", value=True)
+show_news = st.sidebar.checkbox("News in Karten anzeigen", value=True)
+max_news_per_stock = st.sidebar.slider("News je Aktie", 1, 5, 3, 1)
+max_cards = st.sidebar.slider("Maximale Karten anzeigen", 5, 50, 20, 5)
 
 run_now = st.sidebar.button("Screener jetzt ausführen")
 
 st.sidebar.divider()
 
-manual_symbol = st.sidebar.text_input(
-    "Ticker manuell prüfen",
-    value="DELL",
-)
-
+manual_symbol = st.sidebar.text_input("Ticker manuell prüfen", value="DELL")
 manual_check = st.sidebar.button("Ticker prüfen")
 
 
@@ -925,12 +839,12 @@ def show_news_block(symbol, company, limit):
     items_html = ""
 
     if not news_items:
-        items_html = """
-            <div class="news-item">
-                <div class="news-headline">Keine API-News gefunden.</div>
-                <div class="news-meta">Nutze die externen News-Links für manuelle Prüfung.</div>
-            </div>
-        """
+        items_html += (
+            '<div class="news-item">'
+            '<div class="news-headline">Keine API-News gefunden.</div>'
+            '<div class="news-meta">Nutze die externen News-Links für manuelle Prüfung.</div>'
+            '</div>'
+        )
     else:
         for item in news_items[:limit]:
             title = escape(str(item.get("title", "Ohne Titel")))
@@ -940,7 +854,11 @@ def show_news_block(symbol, company, limit):
             summary = str(item.get("summary", "") or "")
 
             if url:
-                headline_html = f'<a href="{url}" target="_blank" rel="noopener noreferrer">{title}</a>'
+                headline_html = (
+                    f'<a href="{url}" target="_blank" rel="noopener noreferrer">'
+                    f'{title}'
+                    f'</a>'
+                )
             else:
                 headline_html = title
 
@@ -950,27 +868,26 @@ def show_news_block(symbol, company, limit):
                 summary_short = summary[:220] + "..." if len(summary) > 220 else summary
                 summary_html = f'<div class="news-summary">{escape(summary_short)}</div>'
 
-            items_html += f"""
-                <div class="news-item">
-                    <div class="news-headline">{headline_html}</div>
-                    <div class="news-meta">{source} · {published}</div>
-                    {summary_html}
-                </div>
-            """
+            items_html += (
+                '<div class="news-item">'
+                f'<div class="news-headline">{headline_html}</div>'
+                f'<div class="news-meta">{source} · {published}</div>'
+                f'{summary_html}'
+                '</div>'
+            )
 
-    st.markdown(
-        f"""
-        <div class="news-box">
-            <div class="news-title">Aktuelle News</div>
-            {items_html}
-            <div class="news-actions">
-                <a class="news-button" href="{escape(de_url)}" target="_blank" rel="noopener noreferrer">DE News öffnen</a>
-                <a class="news-button" href="{escape(en_url)}" target="_blank" rel="noopener noreferrer">EN News öffnen</a>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    html = (
+        '<div class="news-box">'
+        '<div class="news-title">Aktuelle News</div>'
+        f'{items_html}'
+        '<div class="news-actions">'
+        f'<a class="news-button" href="{escape(de_url)}" target="_blank" rel="noopener noreferrer">DE News öffnen</a>'
+        f'<a class="news-button" href="{escape(en_url)}" target="_blank" rel="noopener noreferrer">EN News öffnen</a>'
+        '</div>'
+        '</div>'
     )
+
+    st.markdown(html, unsafe_allow_html=True)
 
 
 def sort_dataframe(df, sort_key):
@@ -1169,42 +1086,17 @@ def show_top_control_panel(display_all):
     c4, c5, c6, c7 = st.columns([1, 1, 1, 1])
 
     with c4:
-        min_score_filter = st.slider(
-            "Mindest-Score",
-            min_value=0,
-            max_value=100,
-            value=0,
-            step=5,
-        )
+        min_score_filter = st.slider("Mindest-Score", 0, 100, 0, 5)
 
     with c5:
-        min_stage2_filter = st.slider(
-            "Mindest-Stage-2",
-            min_value=0,
-            max_value=100,
-            value=0,
-            step=5,
-        )
+        min_stage2_filter = st.slider("Mindest-Stage-2", 0, 100, 0, 5)
 
     with c6:
-        min_momentum_filter = st.slider(
-            "Mindest-2M-Momentum",
-            min_value=-50,
-            max_value=200,
-            value=-50,
-            step=5,
-        )
+        min_momentum_filter = st.slider("Mindest-2M-Momentum", -50, 200, -50, 5)
 
     with c7:
-        chart_toggle = st.checkbox(
-            "Charts anzeigen",
-            value=show_chart_previews,
-        )
-
-        news_toggle = st.checkbox(
-            "News anzeigen",
-            value=show_news,
-        )
+        chart_toggle = st.checkbox("Charts anzeigen", value=show_chart_previews)
+        news_toggle = st.checkbox("News anzeigen", value=show_news)
 
     sort_map = {
         "Score ↓": "score",
@@ -1231,41 +1123,22 @@ def show_top_control_panel(display_all):
     source_filter = source_options
     stage_filter = stage_options
 
-    show_advanced_filters = st.checkbox(
-        "Erweiterte Filter anzeigen",
-        value=False,
-    )
+    show_advanced_filters = st.checkbox("Erweiterte Filter anzeigen", value=False)
 
     if show_advanced_filters:
         f1, f2, f3, f4 = st.columns(4)
 
         with f1:
-            status_choice = st.selectbox(
-                "Status",
-                options=["Alle"] + status_options,
-                index=0,
-            )
+            status_choice = st.selectbox("Status", options=["Alle"] + status_options, index=0)
 
         with f2:
-            setup_choice = st.selectbox(
-                "Setup",
-                options=["Alle"] + setup_options,
-                index=0,
-            )
+            setup_choice = st.selectbox("Setup", options=["Alle"] + setup_options, index=0)
 
         with f3:
-            source_choice = st.selectbox(
-                "Earnings-Quelle",
-                options=["Alle"] + source_options,
-                index=0,
-            )
+            source_choice = st.selectbox("Earnings-Quelle", options=["Alle"] + source_options, index=0)
 
         with f4:
-            stage_choice = st.selectbox(
-                "Stage-2-Status",
-                options=["Alle"] + stage_options,
-                index=0,
-            )
+            stage_choice = st.selectbox("Stage-2-Status", options=["Alle"] + stage_options, index=0)
 
         if status_choice != "Alle":
             status_filter = [status_choice]
@@ -1541,20 +1414,9 @@ def show_compact_table(df, title):
         hide_index=True,
         use_container_width=True,
         column_config={
-            "Stage 2": st.column_config.ProgressColumn(
-                "Stage 2",
-                min_value=0,
-                max_value=100,
-            ),
-            "Score": st.column_config.ProgressColumn(
-                "Score",
-                min_value=0,
-                max_value=100,
-            ),
-            "Chart": st.column_config.LinkColumn(
-                "Chart",
-                display_text="öffnen",
-            ),
+            "Stage 2": st.column_config.ProgressColumn("Stage 2", min_value=0, max_value=100),
+            "Score": st.column_config.ProgressColumn("Score", min_value=0, max_value=100),
+            "Chart": st.column_config.LinkColumn("Chart", display_text="öffnen"),
         },
     )
 
@@ -1610,20 +1472,9 @@ def show_detail_table(df):
         hide_index=True,
         use_container_width=True,
         column_config={
-            "Chart öffnen": st.column_config.LinkColumn(
-                "Chart öffnen",
-                display_text="TradingView öffnen",
-            ),
-            "Stage-2-Score": st.column_config.ProgressColumn(
-                "Stage-2-Score",
-                min_value=0,
-                max_value=100,
-            ),
-            "Gesamtscore": st.column_config.ProgressColumn(
-                "Gesamtscore",
-                min_value=0,
-                max_value=100,
-            ),
+            "Chart öffnen": st.column_config.LinkColumn("Chart öffnen", display_text="TradingView öffnen"),
+            "Stage-2-Score": st.column_config.ProgressColumn("Stage-2-Score", min_value=0, max_value=100),
+            "Gesamtscore": st.column_config.ProgressColumn("Gesamtscore", min_value=0, max_value=100),
         },
     )
 
@@ -1744,10 +1595,7 @@ if view_mode == "Treffer + kompakte Tabelle":
 
     st.divider()
 
-    show_compact_table(
-        filtered_all,
-        title="Kompakte Tabelle",
-    )
+    show_compact_table(filtered_all, title="Kompakte Tabelle")
 
 elif view_mode == "Nur Treffer":
     show_candidate_cards(
@@ -1770,10 +1618,7 @@ elif view_mode == "Alle Kandidaten":
     )
 
 elif view_mode == "Tabellenmodus":
-    show_compact_table(
-        filtered_all,
-        title="Kompakte Tabelle",
-    )
+    show_compact_table(filtered_all, title="Kompakte Tabelle")
 
     with st.expander("Technische Detailtabelle öffnen"):
         show_detail_table(filtered_all)
@@ -1832,10 +1677,7 @@ elif view_mode == "Vollansicht":
 
     st.divider()
 
-    show_compact_table(
-        filtered_all,
-        title="Kompakte Tabelle",
-    )
+    show_compact_table(filtered_all, title="Kompakte Tabelle")
 
     with st.expander("Technische Detailtabelle öffnen"):
         show_detail_table(filtered_all)
