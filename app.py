@@ -1,4 +1,3 @@
-import pandas as pd
 import streamlit as st
 
 from screener import run_screen
@@ -11,16 +10,24 @@ st.set_page_config(
 
 st.title("Earnings Momentum Screener")
 st.caption(
-    "Quartalszahlen in den nächsten Tagen + 2-Monats-Momentum + technischer Trendfilter."
+    "Quartalszahlen im gewählten Zeitraum + 2-Monats-Momentum + technischer Trendfilter."
 )
 
 st.sidebar.header("Steuerung")
 
-days_ahead = st.sidebar.slider(
-    "Earnings-Zeitraum in Tagen",
-    min_value=3,
+lookback_days = st.sidebar.slider(
+    "Rückblick in Tagen",
+    min_value=0,
     max_value=21,
     value=7,
+    step=1,
+)
+
+forward_days = st.sidebar.slider(
+    "Ausblick in Tagen",
+    min_value=3,
+    max_value=30,
+    value=14,
     step=1,
 )
 
@@ -40,7 +47,8 @@ if not run_now:
 
 with st.spinner("Screener läuft. Earnings-Kalender und Kursdaten werden geladen..."):
     hits_df, all_df, stats = run_screen(
-        days_ahead=days_ahead,
+        lookback_days=lookback_days,
+        forward_days=forward_days,
         min_performance_2m=min_performance,
     )
 
@@ -61,7 +69,7 @@ st.caption(
 st.divider()
 
 if all_df.empty:
-    st.warning("Es wurden Earnings gefunden, aber keine Aktie konnte mit ausreichenden Kursdaten geprüft werden.")
+    st.warning("Es wurden keine Aktien mit ausreichenden Kursdaten geprüft.")
     st.stop()
 
 st.subheader("Treffer über Momentum-Filter")
@@ -71,7 +79,7 @@ if hits_df.empty:
 else:
     st.dataframe(
         hits_df,
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
     )
 
@@ -89,7 +97,7 @@ filtered_all = all_df[all_df["status"].isin(status_filter)]
 
 st.dataframe(
     filtered_all,
-    use_container_width=True,
+    width="stretch",
     hide_index=True,
 )
 
@@ -106,6 +114,6 @@ st.bar_chart(
 st.divider()
 
 st.caption(
-    "Keine Anlageberatung. Der Screener zeigt Kandidaten mit Kursmomentum vor Quartalszahlen. "
+    "Keine Anlageberatung. Der Screener zeigt Kandidaten mit Kursmomentum rund um Quartalszahlen. "
     "Bei stark gelaufenen Aktien sind hohe Erwartungen oft bereits eingepreist."
 )
