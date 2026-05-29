@@ -53,7 +53,7 @@ tradingview_limit = st.sidebar.slider(
 show_chart_previews = st.sidebar.checkbox(
     "Chart-Vorschau anzeigen",
     value=True,
-    help="Zeigt pro Aktie eine stabile Chart-Bildvorschau.",
+    help="Zeigt pro Aktie eine kleine Chart-Bildvorschau.",
 )
 
 max_cards = st.sidebar.slider(
@@ -160,6 +160,11 @@ def prepare_display_df(df):
     return display
 
 
+def chart_preview_url(ticker):
+    ticker = str(ticker).upper().strip()
+    return f"https://finviz.com/chart.ashx?t={ticker}&ty=c&ta=1&p=d&s=l"
+
+
 def show_chart_preview(ticker):
     ticker = str(ticker).upper().strip()
     url = chart_preview_url(ticker)
@@ -196,16 +201,6 @@ def show_chart_preview(ticker):
         </div>
         """,
         unsafe_allow_html=True,
-    )
-
-
-def show_chart_preview(ticker):
-    url = chart_preview_url(ticker)
-
-    st.image(
-        url,
-        use_container_width=True,
-        caption=f"Chart-Vorschau {ticker} · Tageschart mit technischen Linien",
     )
 
 
@@ -294,7 +289,8 @@ def show_candidate_cards(df, title, empty_message, limit=20, show_charts=True):
                 st.info(interpretation)
 
             if show_charts:
-                show_chart_preview(ticker)
+                with st.expander(f"Kompakte Chart-Vorschau {ticker}", expanded=False):
+                    show_chart_preview(ticker)
 
 
 def show_compact_table(df, title):
@@ -427,7 +423,7 @@ def show_explanation_box(min_performance):
 - **Abstand 200-Tage-Linie**: Abstand des aktuellen Kurses zur 200-Tage-Linie.
 - **Relativ zu SPY / QQQ**: Aktie läuft stärker oder schwächer als Markt/Tech.
 - **Stage-2-Score**: technische Trendqualität über Kurs, 50-Tage-Linie, 200-Tage-Linie und Performance.
-- **Chart-Vorschau**: einfache Bildvorschau des Tagescharts. Für Detailanalyse immer den TradingView-Link öffnen.
+- **Chart-Vorschau**: kleine Finviz-Bildvorschau. Für Detailanalyse immer den TradingView-Link öffnen.
 - **Wichtig**: Treffer sind Kandidaten für Detailanalyse, keine Kaufempfehlung.
 """
     )
