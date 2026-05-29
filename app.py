@@ -15,16 +15,22 @@ st.markdown(
     <style>
         .stApp {
             background: #0B0F17;
-            color: #E8EEF7;
+            color: #F8FAFC;
         }
 
         [data-testid="stSidebar"] {
             background: #111827;
-            border-right: 1px solid rgba(255,255,255,0.08);
+            border-right: 1px solid rgba(255,255,255,0.10);
         }
 
         [data-testid="stSidebar"] * {
-            color: #E8EEF7;
+            color: #F8FAFC !important;
+        }
+
+        [data-testid="stSidebar"] input {
+            background: #0F1726 !important;
+            color: #FFFFFF !important;
+            border: 1px solid rgba(255,255,255,0.18) !important;
         }
 
         .block-container {
@@ -35,15 +41,19 @@ st.markdown(
         }
 
         h1, h2, h3, h4 {
-            color: #F8FAFC !important;
+            color: #FFFFFF !important;
             letter-spacing: -0.02em;
+        }
+
+        p, span, div, label {
+            color: inherit;
         }
 
         .main-header {
             padding: 20px 24px;
             border-radius: 22px;
             background: linear-gradient(135deg, #1E293B 0%, #172033 100%);
-            border: 1px solid rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.16);
             box-shadow: 0 12px 30px rgba(0,0,0,0.32);
             margin-bottom: 24px;
         }
@@ -58,12 +68,12 @@ st.markdown(
 
         .main-subtitle {
             font-size: 14px;
-            color: #CBD5E1;
+            color: #E2E8F0;
         }
 
         .summary-card {
-            background: #182235;
-            border: 1px solid rgba(255,255,255,0.10);
+            background: #1B263A;
+            border: 1px solid rgba(255,255,255,0.16);
             border-radius: 20px;
             padding: 18px 20px;
             margin-bottom: 18px;
@@ -74,18 +84,18 @@ st.markdown(
             font-size: 22px;
             font-weight: 820;
             margin-bottom: 8px;
-            color: #F8FAFC;
+            color: #FFFFFF;
         }
 
         .summary-text {
             font-size: 14px;
-            color: #CBD5E1;
+            color: #F1F5F9;
             line-height: 1.45;
         }
 
         .stock-card {
             background: #162032;
-            border: 1px solid rgba(255,255,255,0.11);
+            border: 1px solid rgba(255,255,255,0.16);
             border-radius: 22px;
             padding: 18px;
             margin-bottom: 18px;
@@ -93,12 +103,12 @@ st.markdown(
         }
 
         .stock-card-hit {
-            border-color: rgba(34,197,94,0.65);
-            box-shadow: 0 0 0 1px rgba(34,197,94,0.18), 0 12px 28px rgba(0,0,0,0.30);
+            border-color: rgba(34,197,94,0.75);
+            box-shadow: 0 0 0 1px rgba(34,197,94,0.22), 0 12px 28px rgba(0,0,0,0.30);
         }
 
         .stock-card-watch {
-            border-color: rgba(245,158,11,0.48);
+            border-color: rgba(245,158,11,0.58);
         }
 
         .stock-title {
@@ -109,14 +119,14 @@ st.markdown(
         }
 
         .stock-meta {
-            color: #B8C4D6;
+            color: #E2E8F0;
             font-size: 12px;
             margin-bottom: 12px;
         }
 
         .metric-box {
-            background: #0F1726;
-            border: 1px solid rgba(255,255,255,0.09);
+            background: #101827;
+            border: 1px solid rgba(255,255,255,0.18);
             border-radius: 15px;
             padding: 10px 11px;
             min-height: 72px;
@@ -124,15 +134,16 @@ st.markdown(
 
         .metric-label {
             font-size: 11px;
-            color: #AAB7CA;
+            color: #D7E1F0;
             margin-bottom: 5px;
             white-space: nowrap;
+            font-weight: 700;
         }
 
         .metric-value {
             font-size: 20px;
             line-height: 1.15;
-            font-weight: 820;
+            font-weight: 850;
             color: #FFFFFF;
             white-space: nowrap;
         }
@@ -140,7 +151,7 @@ st.markdown(
         .metric-value-small {
             font-size: 17px;
             line-height: 1.15;
-            font-weight: 820;
+            font-weight: 850;
             color: #FFFFFF;
             white-space: nowrap;
         }
@@ -158,7 +169,7 @@ st.markdown(
         }
 
         .muted {
-            color: #CBD5E1 !important;
+            color: #E2E8F0 !important;
         }
 
         .badge-row {
@@ -175,46 +186,46 @@ st.markdown(
             border-radius: 999px;
             padding: 5px 10px;
             font-size: 12px;
-            font-weight: 750;
-            border: 1px solid rgba(255,255,255,0.12);
-            background: #0F1726;
-            color: #DDE6F3;
+            font-weight: 800;
+            border: 1px solid rgba(255,255,255,0.18);
+            background: #101827;
+            color: #F8FAFC;
         }
 
         .badge-green {
-            background: rgba(34,197,94,0.14);
-            border-color: rgba(34,197,94,0.44);
-            color: #86EFAC;
+            background: rgba(34,197,94,0.18);
+            border-color: rgba(34,197,94,0.55);
+            color: #BBF7D0;
         }
 
         .badge-yellow {
-            background: rgba(245,158,11,0.14);
-            border-color: rgba(245,158,11,0.44);
-            color: #FCD34D;
+            background: rgba(245,158,11,0.18);
+            border-color: rgba(245,158,11,0.55);
+            color: #FDE68A;
         }
 
         .badge-red {
-            background: rgba(239,68,68,0.14);
-            border-color: rgba(239,68,68,0.44);
-            color: #FCA5A5;
+            background: rgba(239,68,68,0.18);
+            border-color: rgba(239,68,68,0.55);
+            color: #FECACA;
         }
 
         .badge-blue {
-            background: rgba(59,130,246,0.14);
-            border-color: rgba(59,130,246,0.44);
-            color: #93C5FD;
+            background: rgba(59,130,246,0.18);
+            border-color: rgba(59,130,246,0.55);
+            color: #BFDBFE;
         }
 
         .info-line {
-            color: #CAD5E6;
+            color: #E2E8F0;
             font-size: 13px;
             line-height: 1.45;
             margin-top: 8px;
         }
 
         .chart-wrap {
-            background: #0B0F17;
-            border: 1px solid rgba(255,255,255,0.10);
+            background: #FFFFFF;
+            border: 1px solid rgba(255,255,255,0.16);
             border-radius: 16px;
             overflow: hidden;
             padding: 8px;
@@ -231,17 +242,39 @@ st.markdown(
 
         .chart-caption {
             font-size: 11px;
-            color: #9BA8BC;
+            color: #334155;
             margin-top: 6px;
+            font-weight: 700;
+        }
+
+        .sort-panel {
+            background: #182235;
+            border: 1px solid rgba(255,255,255,0.14);
+            border-radius: 18px;
+            padding: 15px 16px;
+            margin-bottom: 18px;
+        }
+
+        .sort-title {
+            font-size: 16px;
+            font-weight: 850;
+            color: #FFFFFF;
+            margin-bottom: 8px;
+        }
+
+        .sort-hint {
+            color: #CBD5E1;
+            font-size: 12px;
+            margin-bottom: 10px;
         }
 
         .stButton > button,
         .stLinkButton > a {
             background: #2563EB !important;
             color: white !important;
-            border: 1px solid rgba(255,255,255,0.12) !important;
+            border: 1px solid rgba(255,255,255,0.18) !important;
             border-radius: 12px !important;
-            font-weight: 800 !important;
+            font-weight: 850 !important;
             box-shadow: 0 6px 16px rgba(37,99,235,0.22);
         }
 
@@ -249,27 +282,37 @@ st.markdown(
         .stLinkButton > a:hover {
             background: #1D4ED8 !important;
             color: white !important;
-            border-color: rgba(255,255,255,0.18) !important;
+            border-color: rgba(255,255,255,0.28) !important;
         }
 
         div[data-testid="stMetric"] {
-            background: #182235;
-            border: 1px solid rgba(255,255,255,0.10);
+            background: #1B263A;
+            border: 1px solid rgba(255,255,255,0.16);
             border-radius: 16px;
             padding: 13px 14px;
             box-shadow: 0 6px 16px rgba(0,0,0,0.20);
         }
 
         div[data-testid="stMetricLabel"] {
-            color: #CBD5E1 !important;
+            color: #DDE7F5 !important;
+            font-weight: 750 !important;
         }
 
         div[data-testid="stMetricValue"] {
             color: #FFFFFF !important;
         }
 
+        div[data-testid="stMetricDelta"] {
+            color: #22C55E !important;
+        }
+
         .stAlert {
             border-radius: 16px;
+            color: #F8FAFC !important;
+        }
+
+        .stAlert * {
+            color: inherit !important;
         }
 
         [data-testid="stDataFrame"] {
@@ -279,7 +322,7 @@ st.markdown(
         }
 
         hr {
-            border-color: rgba(255,255,255,0.09);
+            border-color: rgba(255,255,255,0.11);
         }
     </style>
     """,
@@ -544,6 +587,107 @@ def show_screening_summary(stats):
             f"{stats.get('best_company')} ({stats.get('best_symbol')})",
             format_percent(stats.get("best_performance")),
         )
+
+
+def sort_dataframe(df, sort_key):
+    if df is None or df.empty:
+        return df
+
+    sorted_df = df.copy()
+
+    if sort_key == "score":
+        return sorted_df.sort_values("score", ascending=False)
+
+    if sort_key == "momentum":
+        return sorted_df.sort_values("performance_2m_proxy_pct", ascending=False)
+
+    if sort_key == "stage2":
+        return sorted_df.sort_values("stage2_score", ascending=False)
+
+    if sort_key == "earnings_date_asc":
+        sorted_df["_sort_date"] = pd.to_datetime(sorted_df["earnings_date"], errors="coerce")
+        return sorted_df.sort_values("_sort_date", ascending=True).drop(columns=["_sort_date"])
+
+    if sort_key == "earnings_date_desc":
+        sorted_df["_sort_date"] = pd.to_datetime(sorted_df["earnings_date"], errors="coerce")
+        return sorted_df.sort_values("_sort_date", ascending=False).drop(columns=["_sort_date"])
+
+    if sort_key == "distance_50":
+        return sorted_df.sort_values("distance_sma_50_pct", ascending=False)
+
+    if sort_key == "distance_200":
+        return sorted_df.sort_values("distance_sma_200_pct", ascending=False)
+
+    if sort_key == "ticker":
+        return sorted_df.sort_values("symbol", ascending=True)
+
+    return sorted_df.sort_values("score", ascending=False)
+
+
+def show_sort_buttons():
+    if "sort_key" not in st.session_state:
+        st.session_state.sort_key = "score"
+
+    st.markdown(
+        """
+        <div class="sort-panel">
+            <div class="sort-title">Sortierung</div>
+            <div class="sort-hint">
+                Sortiere die unten aufgeführten Aktien nach dem Kriterium, das für deine Analyse gerade relevant ist.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    b1, b2, b3, b4 = st.columns(4)
+
+    with b1:
+        if st.button("Score ↓", use_container_width=True):
+            st.session_state.sort_key = "score"
+
+    with b2:
+        if st.button("2M-Momentum ↓", use_container_width=True):
+            st.session_state.sort_key = "momentum"
+
+    with b3:
+        if st.button("Stage 2 ↓", use_container_width=True):
+            st.session_state.sort_key = "stage2"
+
+    with b4:
+        if st.button("Ticker A–Z", use_container_width=True):
+            st.session_state.sort_key = "ticker"
+
+    b5, b6, b7, b8 = st.columns(4)
+
+    with b5:
+        if st.button("Earnings früh → spät", use_container_width=True):
+            st.session_state.sort_key = "earnings_date_asc"
+
+    with b6:
+        if st.button("Earnings spät → früh", use_container_width=True):
+            st.session_state.sort_key = "earnings_date_desc"
+
+    with b7:
+        if st.button("Abstand 50-Tage ↓", use_container_width=True):
+            st.session_state.sort_key = "distance_50"
+
+    with b8:
+        if st.button("Abstand 200-Tage ↓", use_container_width=True):
+            st.session_state.sort_key = "distance_200"
+
+    sort_labels = {
+        "score": "Score absteigend",
+        "momentum": "2M-Momentum absteigend",
+        "stage2": "Stage 2 absteigend",
+        "ticker": "Ticker A–Z",
+        "earnings_date_asc": "Earnings früh → spät",
+        "earnings_date_desc": "Earnings spät → früh",
+        "distance_50": "Abstand zur 50-Tage-Linie absteigend",
+        "distance_200": "Abstand zur 200-Tage-Linie absteigend",
+    }
+
+    st.caption(f"Aktive Sortierung: {sort_labels.get(st.session_state.sort_key, 'Score absteigend')}")
 
 
 def show_candidate_cards(df, title, empty_message, limit=20, show_charts=True):
@@ -890,7 +1034,7 @@ show_candidate_cards(
 
 st.divider()
 
-st.subheader("Filter für alle Kandidaten")
+st.subheader("Filter und Sortierung für alle Kandidaten")
 
 f1, f2, f3 = st.columns(3)
 
@@ -920,6 +1064,10 @@ filtered_all = all_df[
     & all_df["calendar_source"].isin(source_filter)
     & all_df["stage2_status"].isin(stage_filter)
 ]
+
+show_sort_buttons()
+
+filtered_all = sort_dataframe(filtered_all, st.session_state.sort_key)
 
 st.divider()
 
