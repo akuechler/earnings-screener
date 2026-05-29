@@ -1,5 +1,8 @@
+import json
+
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 
 from screener import analyze_single_symbol, run_screen
 
@@ -9,7 +12,7 @@ st.set_page_config(
     layout="wide",
 )
 
-st.title("Earnings Momentum Screener von Andreas")
+st.title("Earnings Momentum Screener")
 st.caption(
     "TradingView-basierter Earnings-Momentum-Screener. "
     "TradingView ist die Hauptquelle. FMP/Finnhub ergänzen Earnings-Termine."
@@ -47,7 +50,22 @@ tradingview_limit = st.sidebar.slider(
     max_value=20000,
     value=8000,
     step=1000,
-    help="Höher = mehr Aktienuniversum.",
+    help="Höher = mehr Aktienuniversum. TradingView liefert Performance-Daten direkt.",
+)
+
+show_chart_previews = st.sidebar.checkbox(
+    "Chart-Vorschau anzeigen",
+    value=True,
+    help="Zeigt eine kompakte TradingView-Chart-Vorschau in den Kandidatenkarten.",
+)
+
+max_cards = st.sidebar.slider(
+    "Maximale Karten anzeigen",
+    min_value=5,
+    max_value=50,
+    value=20,
+    step=5,
+    help="Mehr Karten bedeuten mehr Chart-Widgets und längere Ladezeit.",
 )
 
 run_now = st.sidebar.button("Screener jetzt ausführen")
@@ -67,7 +85,7 @@ def format_percent(value):
         return "n/a"
 
     try:
-        return f"{float(value):.2f} %"
+        return f"{float(value):.2f} %".replace(".", ",")
     except Exception:
         return "n/a"
 
@@ -124,6 +142,58 @@ def rating_badge(rating):
     return "Watch"
 
 
+def normalize_exchange_for_tradingview(exchange):
+    if not exchange:
+        return "NASDAQ"
+
+    exchange = str(exchange).upper().strip()
+
+    if "NASDAQ" in exchange:
+        return "NASDAQ"
+
+    if "NYSE" in exchange or "NEW YORK" in exchange:
+        return "NYSE"
+
+    if "AMEX" in exchange:
+        return "AMEX"
+
+    return exchange
+
+
+def make_tradingview_symbol(ticker, exchange):
+    ticker = str(ticker).upper().strip()
+    tv_exchange = normalize_exchange_for_tradingview(exchange)
+
+    return f"{tv_exchange}:{ticker}"
+
+
+def show_tradingview_preview(ticker, exchange):
+    tv_symbol = make_tradingview_symbol(ticker, exchange)
+
+    widget_config = {
+        "symbol": tv_symbol,
+        "width": "100%",
+        "height": 220,
+        "locale": "de_DE",
+        "dateRange": "3M",
+        "colorTheme": "light",
+        "isTransparent": False,
+        "autosize": True,
+        "largeChartUrl": "",
+    }
+
+    html = f"""
+    <div class="tradingview-widget-container" style="height:220px;width:100%;">
+      <div class="tradingview-widget-container__widget" style="height:220px;width:100%;"></div>
+      <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
+      {json.dumps(widget_config)}
+      </script>
+    </div>
+    """
+
+    components.html(html, height=235)
+
+
 def prepare_display_df(df):
     if df is None or df.empty:
         return pd.DataFrame()
@@ -132,13 +202,13 @@ def prepare_display_df(df):
 
     display["Datum"] = display["earnings_date"].apply(format_date_de)
     display["Kurs"] = display["current_close"].apply(format_currency)
-    display["2M"] = display["performance_2m_proxy_pct"].apply(format_percent)
     display["1M"] = display["performance_1m_pct"].apply(format_percent)
     display["3M"] = display["performance_3m_pct"].apply(format_percent)
-    display["Rel. SPY"] = display["spy_relative_proxy_pct"].apply(format_percent)
-    display["Rel. QQQ"] = display["qqq_relative_proxy_pct"].apply(format_percent)
-    display["Abstand 50T"] = display["distance_sma_50_pct"].apply(format_percent)
-    display["Abstand 200T"] = display["distance_sma_200_pct"].apply(format_percent)
+    display["2M Proxy"] = display["performance_2m_proxy_pct"].apply(format_percent)
+    display["Relativ zu SPY"] = display["spy_relative_proxy_pct"].apply(format_percent)
+    display["Relativ zu QQQ"] = display["qqq_relative_proxy_pct"].apply(format_percent)
+    display["Abstand 50-Tage-Linie"] = display["distance_sma_50_pct"].apply(format_percent)
+    display["Abstand 200-Tage-Linie"] = display["distance_sma_200_pct"].apply(format_percent)
     display["Statusanzeige"] = display["status"].apply(status_badge)
     display["Ratinganzeige"] = display["rating"].apply(rating_badge)
 
@@ -169,7 +239,7 @@ def show_market_regime(stats):
     col2.metric("QQQ 2M Proxy", format_percent(qqq_perf))
 
 
-def show_candidate_cards(df, title, empty_message, limit=30):
+def show_candidate_cards(df, title, empty_message, limit=20, show_charts=True):
     st.subheader(title)
 
     if df is None or df.empty:
@@ -190,12 +260,10 @@ def show_candidate_cards(df, title, empty_message, limit=30):
         data_source = row.get("data_source", "n/a")
 
         with st.container(border=True):
-            header_left, header_right = st.columns([3, 1])
+            header_left, header_right = st.columns([4, 1])
 
             with header_left:
-                st.markdown(
-                    f"### {company} ({ticker})"
-                )
+                st.markdown(f"### {company} ({ticker})")
                 st.caption(
                     f"WKN: {wkn} · Börse: {exchange} · Earnings: {row['Datum']} · Quelle: {source}"
                 )
@@ -204,23 +272,32 @@ def show_candidate_cards(df, title, empty_message, limit=30):
                 if chart_url:
                     st.link_button("Chart öffnen", chart_url, use_container_width=True)
 
-            k1, k2, k3, k4, k5, k6 = st.columns(6)
+            if show_charts:
+                show_tradingview_preview(ticker, exchange)
+
+            k1, k2, k3, k4, k5 = st.columns(5)
 
             k1.metric("Aktueller Kurs", row["Kurs"])
-            k2.metric("2M Proxy", row["2M"])
-            k3.metric("Abstand 50T", row["Abstand 50T"])
-            k4.metric("Abstand 200T", row["Abstand 200T"])
-            k5.metric("Stage-2", f"{int(row['stage2_score'])} %")
-            k6.metric("Score", f"{int(row['score'])} %")
+            k2.metric("2M Proxy", row["2M Proxy"])
+            k3.metric("Abstand 50-Tage-Linie", row["Abstand 50-Tage-Linie"])
+            k4.metric("Abstand 200-Tage-Linie", row["Abstand 200-Tage-Linie"])
+            k5.metric("Gesamtscore", f"{int(row['score'])} %")
 
-            c1, c2, c3, c4 = st.columns(4)
+            t1, t2, t3, t4, t5 = st.columns(5)
 
-            c1.write(f"**Status:** {row['Statusanzeige']}")
-            c2.write(f"**Rating:** {row['Ratinganzeige']}")
-            c3.write(f"**Rel. SPY:** {row['Rel. SPY']}")
-            c4.write(f"**Rel. QQQ:** {row['Rel. QQQ']}")
+            t1.write(f"**Status:** {row['Statusanzeige']}")
+            t2.write(f"**Rating:** {row['Ratinganzeige']}")
+            t3.write(f"**Stage 2:** {int(row['stage2_score'])} %")
+            t4.write(f"**Relativ zu SPY:** {row['Relativ zu SPY']}")
+            t5.write(f"**Relativ zu QQQ:** {row['Relativ zu QQQ']}")
 
-            st.caption(f"Aktion: {action} · Kursdaten: {data_source}")
+            p1, p2, p3 = st.columns(3)
+
+            p1.write(f"**1 Monat:** {row['1M']}")
+            p2.write(f"**3 Monate:** {row['3M']}")
+            p3.write(f"**Kursdaten:** {data_source}")
+
+            st.caption(f"Aktion: {action}")
 
             if interpretation:
                 st.info(interpretation)
@@ -242,21 +319,23 @@ def show_compact_table(df, title):
             "wkn",
             "Datum",
             "Kurs",
-            "2M",
-            "Abstand 50T",
-            "Abstand 200T",
+            "2M Proxy",
+            "Abstand 50-Tage-Linie",
+            "Abstand 200-Tage-Linie",
             "stage2_score",
             "score",
             "Statusanzeige",
+            "chart_url",
         ]
     ].rename(
         columns={
             "company": "Unternehmen",
             "symbol": "Ticker",
             "wkn": "WKN",
-            "stage2_score": "Stage-2",
+            "stage2_score": "Stage 2",
             "score": "Score",
             "Statusanzeige": "Status",
+            "chart_url": "Chart",
         }
     )
 
@@ -265,8 +344,8 @@ def show_compact_table(df, title):
         hide_index=True,
         use_container_width=True,
         column_config={
-            "Stage-2": st.column_config.ProgressColumn(
-                "Stage-2",
+            "Stage 2": st.column_config.ProgressColumn(
+                "Stage 2",
                 min_value=0,
                 max_value=100,
             ),
@@ -274,6 +353,10 @@ def show_compact_table(df, title):
                 "Score",
                 min_value=0,
                 max_value=100,
+            ),
+            "Chart": st.column_config.LinkColumn(
+                "Chart",
+                display_text="öffnen",
             ),
         },
     )
@@ -346,9 +429,10 @@ def show_explanation_box(min_performance):
 
 - **Treffer**: geschätzte 2M-Performance liegt bei mindestens **{min_performance:.0f} %**.
 - **2M-Performance Proxy**: wird aus TradingView 1M- und 3M-Performance abgeleitet.
-- **Abstand 50T / 200T**: Abstand des aktuellen Kurses zur 50- bzw. 200-Tage-Linie.
+- **Abstand 50-Tage-Linie**: Abstand des aktuellen Kurses zur 50-Tage-Linie.
+- **Abstand 200-Tage-Linie**: Abstand des aktuellen Kurses zur 200-Tage-Linie.
 - **Relativ zu SPY / QQQ**: Aktie läuft stärker oder schwächer als Markt/Tech.
-- **Stage-2-Score**: technische Trendqualität über Kurs, SMA50, SMA200 und Performance.
+- **Stage-2-Score**: technische Trendqualität über Kurs, 50-Tage-Linie, 200-Tage-Linie und Performance.
 - **Wichtig**: Treffer sind Kandidaten für Detailanalyse, keine Kaufempfehlung.
 """
     )
@@ -371,6 +455,7 @@ if manual_check:
             title="Ticker-Ergebnis",
             empty_message="Keine Daten gefunden.",
             limit=1,
+            show_charts=show_chart_previews,
         )
 
         with st.expander("Technische Detaildaten anzeigen"):
@@ -458,7 +543,8 @@ show_candidate_cards(
     hits_df,
     title="Treffer: Aktien über Momentum-Filter",
     empty_message="Keine Aktie erfüllt aktuell deinen Momentum-Filter.",
-    limit=20,
+    limit=max_cards,
+    show_charts=show_chart_previews,
 )
 
 st.divider()
@@ -496,10 +582,19 @@ filtered_all = all_df[
 
 st.divider()
 
-show_compact_table(
+show_candidate_cards(
     filtered_all,
-    title="Alle geprüften Kandidaten — kompakte Übersicht",
+    title="Alle geprüften Kandidaten — Kartenansicht",
+    empty_message="Keine Kandidaten nach Filter.",
+    limit=max_cards,
+    show_charts=show_chart_previews,
 )
+
+with st.expander("Kompakte Tabelle anzeigen"):
+    show_compact_table(
+        filtered_all,
+        title="Alle geprüften Kandidaten — kompakte Übersicht",
+    )
 
 with st.expander("Technische Detailtabelle anzeigen"):
     show_detail_table(filtered_all)
