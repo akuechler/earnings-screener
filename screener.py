@@ -3,20 +3,32 @@ from datetime import date, timedelta
 
 import pandas as pd
 import requests
+import streamlit as st
 
 
-FMP_API_KEY = os.getenv("FMP_API_KEY")
+def get_fmp_api_key():
+    key = os.getenv("FMP_API_KEY")
+
+    if key:
+        return key
+
+    try:
+        return st.secrets["FMP_API_KEY"]
+    except Exception:
+        return None
+
+
+FMP_API_KEY = get_fmp_api_key()
 
 if not FMP_API_KEY:
-    raise RuntimeError("FMP_API_KEY fehlt. Lege ihn als GitHub Secret an.")
+    raise RuntimeError(
+        "FMP_API_KEY fehlt. Lege ihn in GitHub Actions und in Streamlit Secrets an."
+    )
 
 
-START_DATE = date.today()
-END_DATE = START_DATE + timedelta(days=7)
-
-MIN_PERFORMANCE_2M = 15.0
 DATA_DIR = "data"
-OUTPUT_FILE = os.path.join(DATA_DIR, "earnings_momentum_screen.csv")
+FILTERED_FILE = os.path.join(DATA_DIR, "earnings_momentum_screen.csv")
+ALL_FILE = os.path.join(DATA_DIR, "earnings_momentum_all.csv")
 
 COLUMNS = [
     "symbol",
@@ -29,6 +41,7 @@ COLUMNS = [
     "distance_sma_50_pct",
     "score",
     "rating",
+    "status",
 ]
 
 
@@ -102,16 +115,12 @@ def score_stock(momentum):
 
     if momentum["performance_2m"] > 15:
         score += 30
-
     if momentum["performance_2m"] > 25:
         score += 10
-
     if momentum["above_sma_20"]:
         score += 15
-
     if momentum["above_sma_50"]:
         score += 20
-
     if momentum["distance_sma_50"] > 10:
         score += 10
 
@@ -122,18 +131,22 @@ def score_stock(momentum):
     elif score >= 50:
         rating = "C"
     else:
-        rating = "Avoid"
+        rating = "Watch"
 
     return score, rating
 
 
-def run_screen():
+def run_screen(days_ahead=7, min_performance_2m=15.0):
     os.makedirs(DATA_DIR, exist_ok=True)
 
-    earnings = get_earnings_calendar(START_DATE, END_DATE)
-    print(f"Earnings gefunden: {len(earnings)}")
+    start_date = date.today()
+    end_date = start_date + timedelta(days=days_ahead)
 
-    results = []
+    earnings = get_earnings_calendar(start_date, end_date)
+
+    all_results = []
+    skipped_no_symbol = 0
+    skipped_no_prices = 0
 
     for item in earnings:
         symbol = item.get("symbol")
@@ -141,6 +154,7 @@ def run_screen():
         earnings_date = item.get("date")
 
         if not symbol:
+            skipped_no_symbol += 1
             continue
 
         try:
@@ -148,49 +162,67 @@ def run_screen():
             momentum = calculate_momentum(prices)
 
             if momentum is None:
-                continue
-
-            if momentum["performance_2m"] <= MIN_PERFORMANCE_2M:
+                skipped_no_prices += 1
                 continue
 
             score, rating = score_stock(momentum)
 
-            results.append(
+            performance = round(momentum["performance_2m"], 2)
+
+            if performance >= min_performance_2m:
+                status = "Treffer"
+            elif performance >= min_performance_2m - 5:
+                status = "Knapp darunter"
+            else:
+                status = "Unter Filter"
+
+            all_results.append(
                 {
                     "symbol": symbol,
                     "company": company,
                     "earnings_date": earnings_date,
                     "current_close": round(momentum["current_close"], 2),
-                    "performance_2m_pct": round(momentum["performance_2m"], 2),
+                    "performance_2m_pct": performance,
                     "above_sma_20": momentum["above_sma_20"],
                     "above_sma_50": momentum["above_sma_50"],
                     "distance_sma_50_pct": round(momentum["distance_sma_50"], 2),
                     "score": score,
                     "rating": rating,
+                    "status": status,
                 }
             )
-
-            print(f"Treffer: {symbol} {round(momentum['performance_2m'], 2)}%")
 
         except Exception as error:
             print(f"Fehler bei {symbol}: {error}")
 
-    df = pd.DataFrame(results, columns=COLUMNS)
+    all_df = pd.DataFrame(all_results, columns=COLUMNS)
 
-    if not df.empty:
-        df = df.sort_values(
-            by=["score", "performance_2m_pct"],
+    if not all_df.empty:
+        all_df = all_df.sort_values(
+            by=["performance_2m_pct", "score"],
             ascending=[False, False],
         )
 
-    df.to_csv(OUTPUT_FILE, index=False)
+    filtered_df = all_df[all_df["performance_2m_pct"] >= min_performance_2m].copy()
 
-    print(f"Treffer insgesamt: {len(df)}")
-    print(f"CSV geschrieben nach: {OUTPUT_FILE}")
+    all_df.to_csv(ALL_FILE, index=False)
+    filtered_df.to_csv(FILTERED_FILE, index=False)
 
-    return df
+    stats = {
+        "earnings_found": len(earnings),
+        "stocks_with_price_data": len(all_df),
+        "hits": len(filtered_df),
+        "skipped_no_symbol": skipped_no_symbol,
+        "skipped_no_prices": skipped_no_prices,
+        "start_date": str(start_date),
+        "end_date": str(end_date),
+        "min_performance_2m": min_performance_2m,
+    }
+
+    return filtered_df, all_df, stats
 
 
 if __name__ == "__main__":
-    screen = run_screen()
-    print(screen)
+    filtered, all_candidates, stats = run_screen()
+    print(stats)
+    print(filtered)
