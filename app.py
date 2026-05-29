@@ -1,6 +1,7 @@
 import pandas as pd
 import streamlit as st
 
+from news import get_company_news, google_news_de_url, google_news_en_url
 from screener import analyze_single_symbol, run_screen
 
 
@@ -44,10 +45,6 @@ st.markdown(
         h1, h2, h3, h4 {
             color: #FFFFFF !important;
             letter-spacing: -0.02em;
-        }
-
-        p, span, div, label {
-            color: inherit;
         }
 
         label,
@@ -163,7 +160,6 @@ st.markdown(
             color: #FFFFFF;
             font-size: 12px;
             font-weight: 900;
-            opacity: 1;
             margin-bottom: 8px;
             white-space: normal;
         }
@@ -173,7 +169,6 @@ st.markdown(
             font-size: 26px;
             font-weight: 950;
             line-height: 1.05;
-            opacity: 1;
             word-break: break-word;
         }
 
@@ -329,7 +324,6 @@ st.markdown(
             margin-bottom: 5px;
             white-space: normal;
             font-weight: 900;
-            opacity: 1;
         }
 
         .metric-value {
@@ -338,7 +332,6 @@ st.markdown(
             font-weight: 950;
             color: #FFFFFF;
             white-space: normal;
-            opacity: 1;
         }
 
         .metric-value-small {
@@ -347,7 +340,6 @@ st.markdown(
             font-weight: 950;
             color: #FFFFFF;
             white-space: normal;
-            opacity: 1;
         }
 
         .positive {
@@ -442,6 +434,48 @@ st.markdown(
             font-weight: 800;
         }
 
+        .news-box {
+            background: #0F1726;
+            border: 1px solid rgba(255,255,255,0.18);
+            border-radius: 16px;
+            padding: 12px 14px;
+            margin-top: 12px;
+        }
+
+        .news-title {
+            font-size: 14px;
+            font-weight: 950;
+            color: #FFFFFF;
+            margin-bottom: 8px;
+        }
+
+        .news-item {
+            border-top: 1px solid rgba(255,255,255,0.10);
+            padding-top: 8px;
+            margin-top: 8px;
+        }
+
+        .news-headline {
+            font-size: 13px;
+            font-weight: 850;
+            color: #F8FAFC;
+            line-height: 1.35;
+        }
+
+        .news-meta {
+            font-size: 11px;
+            color: #CBD5E1;
+            font-weight: 700;
+            margin-top: 3px;
+        }
+
+        .news-summary {
+            font-size: 12px;
+            color: #E2E8F0;
+            line-height: 1.35;
+            margin-top: 4px;
+        }
+
         .stButton > button,
         .stLinkButton > a {
             background: #2563EB !important;
@@ -488,7 +522,7 @@ st.markdown(
     <div class="main-header">
         <div class="main-title">Earnings Momentum Screener von Andreas</div>
         <div class="main-subtitle">
-            Analyst Cockpit · Qualitätsfilter · Pre-/Post-Earnings · Momentum · 50-/200-Tage-Linie · Chartvorschau
+            Analyst Cockpit · Qualitätsfilter · Pre-/Post-Earnings · Momentum · 50-/200-Tage-Linie · News · Chartvorschau
         </div>
     </div>
     """,
@@ -611,6 +645,19 @@ show_chart_previews = st.sidebar.checkbox(
     value=True,
 )
 
+show_news = st.sidebar.checkbox(
+    "News in Karten anzeigen",
+    value=True,
+)
+
+max_news_per_stock = st.sidebar.slider(
+    "News je Aktie",
+    min_value=1,
+    max_value=5,
+    value=3,
+    step=1,
+)
+
 max_cards = st.sidebar.slider(
     "Maximale Karten anzeigen",
     min_value=5,
@@ -680,6 +727,21 @@ def format_date_de(value):
 
     try:
         parsed = pd.to_datetime(value, errors="coerce")
+
+        if pd.isna(parsed):
+            return str(value)
+
+        return parsed.strftime("%d.%m.%Y")
+    except Exception:
+        return str(value)
+
+
+def format_news_date(value):
+    if value is None or str(value).strip() == "":
+        return "n/a"
+
+    try:
+        parsed = pd.to_datetime(value, errors="coerce", unit=None)
 
         if pd.isna(parsed):
             return str(value)
@@ -812,6 +874,73 @@ def kpi_card(label, value, sub=None, color_class=""):
         """,
         unsafe_allow_html=True,
     )
+
+
+def show_news_block(symbol, company, limit):
+    symbol = str(symbol).upper().strip()
+    company = str(company).strip()
+
+    news_items = get_company_news(symbol, limit=limit)
+    de_url = google_news_de_url(symbol, company)
+    en_url = google_news_en_url(symbol, company)
+
+    st.markdown(
+        """
+        <div class="news-box">
+            <div class="news-title">Aktuelle News</div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    if not news_items:
+        st.markdown(
+            """
+            <div class="news-item">
+                <div class="news-headline">Keine API-News gefunden.</div>
+                <div class="news-meta">Nutze die externen News-Links für manuelle Prüfung.</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    else:
+        for item in news_items[:limit]:
+            title = item.get("title", "Ohne Titel")
+            url = item.get("url", "")
+            source = item.get("source", "n/a")
+            published = format_news_date(item.get("published"))
+            summary = item.get("summary", "")
+
+            headline_html = title
+
+            if url:
+                headline_html = f'<a href="{url}" target="_blank" style="color:#DBEAFE;text-decoration:none;">{title}</a>'
+
+            summary_html = ""
+
+            if summary:
+                summary_short = summary[:220] + "..." if len(summary) > 220 else summary
+                summary_html = f'<div class="news-summary">{summary_short}</div>'
+
+            st.markdown(
+                f"""
+                <div class="news-item">
+                    <div class="news-headline">{headline_html}</div>
+                    <div class="news-meta">{source} · {published}</div>
+                    {summary_html}
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+    c1, c2 = st.columns(2)
+
+    with c1:
+        st.link_button("DE News öffnen", de_url, use_container_width=True)
+
+    with c2:
+        st.link_button("EN News öffnen", en_url, use_container_width=True)
+
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
 def sort_dataframe(df, sort_key):
@@ -949,7 +1078,7 @@ def show_top_control_panel(display_all):
         <div class="control-panel">
             <div class="control-title">Analyst Cockpit</div>
             <div class="control-text">
-                Hauptsteuerung für Sortierung, Ansicht und schnelle Qualitätsfilter. Detailfilter sind optional.
+                Hauptsteuerung für Sortierung, Ansicht, News und schnelle Qualitätsfilter. Detailfilter sind optional.
             </div>
         </div>
         """,
@@ -1039,6 +1168,11 @@ def show_top_control_panel(display_all):
             value=show_chart_previews,
         )
 
+        news_toggle = st.checkbox(
+            "News anzeigen",
+            value=show_news,
+        )
+
     sort_map = {
         "Score ↓": "score",
         "2M-Momentum ↓": "momentum",
@@ -1121,6 +1255,7 @@ def show_top_control_panel(display_all):
             <span class="filter-chip">Score ≥ {min_score_filter}</span>
             <span class="filter-chip">Stage 2 ≥ {min_stage2_filter}</span>
             <span class="filter-chip">2M ≥ {min_momentum_filter} %</span>
+            <span class="filter-chip">News: {"an" if news_toggle else "aus"}</span>
         </div>
         """,
         unsafe_allow_html=True,
@@ -1137,6 +1272,7 @@ def show_top_control_panel(display_all):
         "min_stage2_filter": min_stage2_filter,
         "min_momentum_filter": min_momentum_filter,
         "chart_toggle": chart_toggle,
+        "news_toggle": news_toggle,
     }
 
 
@@ -1174,7 +1310,7 @@ def apply_top_filters(df, filters):
     return sort_dataframe(filtered, st.session_state.sort_key)
 
 
-def show_candidate_cards(df, title, empty_message, limit=20, show_charts=True):
+def show_candidate_cards(df, title, empty_message, limit=20, show_charts=True, show_news_items=True):
     st.subheader(title)
 
     if df is None or df.empty:
@@ -1208,138 +1344,134 @@ def show_candidate_cards(df, title, empty_message, limit=20, show_charts=True):
         else:
             card_class = ""
 
-        with st.container():
+        st.markdown(
+            f"""
+            <div class="stock-card {card_class}">
+                <div class="stock-title">{company} ({ticker})</div>
+                <div class="stock-meta">
+                    WKN: {wkn} · Börse: {exchange} · Setup: {setup_type} ·
+                    Earnings-Datum: {row['Datum']} · Earnings-Quelle: {source}
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        left, right = st.columns([2.15, 1])
+
+        with left:
+            c1, c2, c3, c4 = st.columns(4)
+
+            with c1:
+                st.markdown(metric_box("Earnings-Datum", row["Datum"]), unsafe_allow_html=True)
+
+            with c2:
+                st.markdown(metric_box("Aktueller Kurs", row["Kurs"]), unsafe_allow_html=True)
+
+            with c3:
+                st.markdown(
+                    metric_box(
+                        "2M Proxy",
+                        row["2M Proxy"],
+                        numeric_class(row.get("performance_2m_proxy_pct")),
+                    ),
+                    unsafe_allow_html=True,
+                )
+
+            with c4:
+                st.markdown(metric_box("Gesamtscore", f"{int(row['score'])} %"), unsafe_allow_html=True)
+
+            c5, c6, c7, c8 = st.columns(4)
+
+            with c5:
+                st.markdown(
+                    metric_box_small(
+                        "Abstand 50-Tage-Linie",
+                        row["Abstand 50-Tage-Linie"],
+                        numeric_class(row.get("distance_sma_50_pct")),
+                    ),
+                    unsafe_allow_html=True,
+                )
+
+            with c6:
+                st.markdown(
+                    metric_box_small(
+                        "Abstand 200-Tage-Linie",
+                        row["Abstand 200-Tage-Linie"],
+                        numeric_class(row.get("distance_sma_200_pct")),
+                    ),
+                    unsafe_allow_html=True,
+                )
+
+            with c7:
+                st.markdown(metric_box_small("Stage 2", f"{int(row['stage2_score'])} %"), unsafe_allow_html=True)
+
+            with c8:
+                st.markdown(metric_box_small("Earnings-Quelle", source), unsafe_allow_html=True)
+
+            c9, c10, c11 = st.columns(3)
+
+            with c9:
+                st.markdown(metric_box_small("Market Cap", row["Marktkapitalisierung"]), unsafe_allow_html=True)
+
+            with c10:
+                st.markdown(metric_box_small("Volumen", row["Volumen"]), unsafe_allow_html=True)
+
+            with c11:
+                st.markdown(metric_box_small("Dollar-Volumen", row["Dollar-Volumen"]), unsafe_allow_html=True)
+
             st.markdown(
                 f"""
-                <div class="stock-card {card_class}">
-                    <div class="stock-title">{company} ({ticker})</div>
-                    <div class="stock-meta">
-                        WKN: {wkn} · Börse: {exchange} · Setup: {setup_type} ·
-                        Earnings-Datum: {row['Datum']} · Earnings-Quelle: {source}
-                    </div>
+                <div class="badge-row">
+                    <span class="badge {status_badge_class(status)}">{status}</span>
+                    <span class="badge">{rating_badge(rating)}</span>
+                    <span class="badge">{stage2_status}</span>
+                    <span class="badge">{setup_type}</span>
+                    <span class="badge">Rel. SPY: {row['Relativ zu SPY']}</span>
+                    <span class="badge">Rel. QQQ: {row['Relativ zu QQQ']}</span>
+                    <span class="badge">1M: {row['1M']}</span>
+                    <span class="badge">3M: {row['3M']}</span>
+                    <span class="badge">6M: {row['6M']}</span>
+                </div>
+                <div class="info-line">
+                    <b>Aktion:</b> {action} · <b>Kursdaten:</b> {data_source}<br>
+                    <b>Qualität:</b> {quality_reason}
+                </div>
                 """,
                 unsafe_allow_html=True,
             )
 
-            left, right = st.columns([2.15, 1])
+            if interpretation:
+                st.info(interpretation)
 
-            with left:
-                c1, c2, c3, c4 = st.columns(4)
+            b1, b2, b3 = st.columns(3)
 
-                with c1:
-                    st.markdown(
-                        metric_box("Earnings-Datum", row["Datum"]),
-                        unsafe_allow_html=True,
-                    )
+            with b1:
+                if chart_url:
+                    st.link_button("TradingView öffnen", chart_url, use_container_width=True)
 
-                with c2:
-                    st.markdown(
-                        metric_box("Aktueller Kurs", row["Kurs"]),
-                        unsafe_allow_html=True,
-                    )
-
-                with c3:
-                    st.markdown(
-                        metric_box(
-                            "2M Proxy",
-                            row["2M Proxy"],
-                            numeric_class(row.get("performance_2m_proxy_pct")),
-                        ),
-                        unsafe_allow_html=True,
-                    )
-
-                with c4:
-                    st.markdown(
-                        metric_box("Gesamtscore", f"{int(row['score'])} %"),
-                        unsafe_allow_html=True,
-                    )
-
-                c5, c6, c7, c8 = st.columns(4)
-
-                with c5:
-                    st.markdown(
-                        metric_box_small(
-                            "Abstand 50-Tage-Linie",
-                            row["Abstand 50-Tage-Linie"],
-                            numeric_class(row.get("distance_sma_50_pct")),
-                        ),
-                        unsafe_allow_html=True,
-                    )
-
-                with c6:
-                    st.markdown(
-                        metric_box_small(
-                            "Abstand 200-Tage-Linie",
-                            row["Abstand 200-Tage-Linie"],
-                            numeric_class(row.get("distance_sma_200_pct")),
-                        ),
-                        unsafe_allow_html=True,
-                    )
-
-                with c7:
-                    st.markdown(
-                        metric_box_small("Stage 2", f"{int(row['stage2_score'])} %"),
-                        unsafe_allow_html=True,
-                    )
-
-                with c8:
-                    st.markdown(
-                        metric_box_small("Earnings-Quelle", source),
-                        unsafe_allow_html=True,
-                    )
-
-                c9, c10, c11 = st.columns(3)
-
-                with c9:
-                    st.markdown(
-                        metric_box_small("Market Cap", row["Marktkapitalisierung"]),
-                        unsafe_allow_html=True,
-                    )
-
-                with c10:
-                    st.markdown(
-                        metric_box_small("Volumen", row["Volumen"]),
-                        unsafe_allow_html=True,
-                    )
-
-                with c11:
-                    st.markdown(
-                        metric_box_small("Dollar-Volumen", row["Dollar-Volumen"]),
-                        unsafe_allow_html=True,
-                    )
-
-                st.markdown(
-                    f"""
-                    <div class="badge-row">
-                        <span class="badge {status_badge_class(status)}">{status}</span>
-                        <span class="badge">{rating_badge(rating)}</span>
-                        <span class="badge">{stage2_status}</span>
-                        <span class="badge">{setup_type}</span>
-                        <span class="badge">Rel. SPY: {row['Relativ zu SPY']}</span>
-                        <span class="badge">Rel. QQQ: {row['Relativ zu QQQ']}</span>
-                        <span class="badge">1M: {row['1M']}</span>
-                        <span class="badge">3M: {row['3M']}</span>
-                        <span class="badge">6M: {row['6M']}</span>
-                    </div>
-                    <div class="info-line">
-                        <b>Aktion:</b> {action} · <b>Kursdaten:</b> {data_source}<br>
-                        <b>Qualität:</b> {quality_reason}
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
+            with b2:
+                st.link_button(
+                    "DE News",
+                    google_news_de_url(ticker, company),
+                    use_container_width=True,
                 )
 
-                if interpretation:
-                    st.info(interpretation)
+            with b3:
+                st.link_button(
+                    "EN News",
+                    google_news_en_url(ticker, company),
+                    use_container_width=True,
+                )
 
-                if chart_url:
-                    st.link_button("TradingView öffnen", chart_url, use_container_width=False)
+            if show_news_items:
+                show_news_block(ticker, company, max_news_per_stock)
 
-            with right:
-                if show_charts:
-                    show_chart_preview(ticker)
+        with right:
+            if show_charts:
+                show_chart_preview(ticker)
 
-            st.markdown("</div>", unsafe_allow_html=True)
+        st.divider()
 
 
 def show_compact_table(df, title):
@@ -1492,7 +1624,7 @@ def show_explanation_box(min_performance):
                 <b>Post-Earnings:</b> Zahlen wurden bereits gemeldet. Das ist eine Reaktions-/Follow-Through-Liste.<br>
                 <b>Treffer:</b> geschätzte 2M-Performance liegt bei mindestens {min_performance:.0f} %.<br>
                 <b>Qualitätsfilter:</b> entfernt OTC, Pennystocks, Microcaps und illiquide Aktien.<br>
-                <b>Stage-2-Score:</b> technische Trendqualität über Kurs, 50-Tage-Linie, 200-Tage-Linie und Performance.
+                <b>News:</b> API-News werden gecacht. Deutsche News werden über Google News geöffnet.
             </div>
         </div>
         """,
@@ -1518,6 +1650,7 @@ if manual_check:
             empty_message="Keine Daten gefunden.",
             limit=1,
             show_charts=show_chart_previews,
+            show_news_items=show_news,
         )
 
         with st.expander("Technische Detaildaten anzeigen"):
@@ -1590,6 +1723,7 @@ if view_mode == "Treffer + kompakte Tabelle":
         empty_message="Keine Aktie erfüllt aktuell deine Filter.",
         limit=max_cards,
         show_charts=filters["chart_toggle"],
+        show_news_items=filters["news_toggle"],
     )
 
     st.divider()
@@ -1606,6 +1740,7 @@ elif view_mode == "Nur Treffer":
         empty_message="Keine Aktie erfüllt aktuell deine Filter.",
         limit=max_cards,
         show_charts=filters["chart_toggle"],
+        show_news_items=filters["news_toggle"],
     )
 
 elif view_mode == "Alle Kandidaten":
@@ -1615,6 +1750,7 @@ elif view_mode == "Alle Kandidaten":
         empty_message="Keine Kandidaten nach Filter.",
         limit=max_cards,
         show_charts=filters["chart_toggle"],
+        show_news_items=filters["news_toggle"],
     )
 
 elif view_mode == "Tabellenmodus":
@@ -1664,6 +1800,7 @@ elif view_mode == "Vollansicht":
         empty_message="Keine Aktie erfüllt aktuell deine Filter.",
         limit=max_cards,
         show_charts=filters["chart_toggle"],
+        show_news_items=filters["news_toggle"],
     )
 
     st.divider()
@@ -1674,6 +1811,7 @@ elif view_mode == "Vollansicht":
         empty_message="Keine Kandidaten nach Filter.",
         limit=max_cards,
         show_charts=filters["chart_toggle"],
+        show_news_items=filters["news_toggle"],
     )
 
     st.divider()
@@ -1722,6 +1860,6 @@ with st.expander("Lesart und Methodik öffnen"):
     show_explanation_box(min_performance)
 
 st.caption(
-    "Keine Anlageberatung. TradingView-Daten dienen als Screening-Grundlage. "
-    "Treffer müssen manuell im Chart und fundamental geprüft werden."
+    "Keine Anlageberatung. TradingView-, Finnhub- und FMP-Daten dienen als Screening-Grundlage. "
+    "Treffer müssen manuell im Chart, fundamental und über Primärquellen geprüft werden."
 )
