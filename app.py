@@ -1,8 +1,5 @@
-import json
-
 import pandas as pd
 import streamlit as st
-import streamlit.components.v1 as components
 
 from screener import analyze_single_symbol, run_screen
 
@@ -56,7 +53,7 @@ tradingview_limit = st.sidebar.slider(
 show_chart_previews = st.sidebar.checkbox(
     "Chart-Vorschau anzeigen",
     value=True,
-    help="Zeigt pro Aktie eine aufklappbare TradingView-Candlestick-Vorschau.",
+    help="Zeigt pro Aktie eine stabile Chart-Bildvorschau.",
 )
 
 max_cards = st.sidebar.slider(
@@ -65,7 +62,7 @@ max_cards = st.sidebar.slider(
     max_value=50,
     value=20,
     step=5,
-    help="Mehr Karten bedeuten mehr Chart-Widgets und längere Ladezeit.",
+    help="Mehr Karten bedeuten mehr Chart-Vorschauen und längere Ladezeit.",
 )
 
 run_now = st.sidebar.button("Screener jetzt ausführen")
@@ -142,65 +139,6 @@ def rating_badge(rating):
     return "Watch"
 
 
-def normalize_exchange_for_tradingview(exchange):
-    if not exchange:
-        return "NASDAQ"
-
-    exchange = str(exchange).upper().strip()
-
-    if "NASDAQ" in exchange:
-        return "NASDAQ"
-
-    if "NYSE" in exchange or "NEW YORK" in exchange:
-        return "NYSE"
-
-    if "AMEX" in exchange:
-        return "AMEX"
-
-    return exchange
-
-
-def make_tradingview_symbol(ticker, exchange):
-    ticker = str(ticker).upper().strip()
-    tv_exchange = normalize_exchange_for_tradingview(exchange)
-
-    return f"{tv_exchange}:{ticker}"
-
-
-def show_tradingview_preview(ticker, exchange):
-    tv_symbol = make_tradingview_symbol(ticker, exchange)
-
-    widget_config = {
-        "autosize": True,
-        "symbol": tv_symbol,
-        "interval": "D",
-        "timezone": "Europe/Berlin",
-        "theme": "light",
-        "style": "1",
-        "locale": "de_DE",
-        "range": "3M",
-        "backgroundColor": "#ffffff",
-        "gridColor": "rgba(46, 46, 46, 0.06)",
-        "hide_top_toolbar": True,
-        "hide_legend": False,
-        "save_image": False,
-        "calendar": False,
-        "hide_volume": False,
-        "support_host": "https://www.tradingview.com",
-    }
-
-    html = f"""
-    <div class="tradingview-widget-container" style="height:420px;width:100%;">
-      <div class="tradingview-widget-container__widget" style="height:420px;width:100%;"></div>
-      <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
-      {json.dumps(widget_config)}
-      </script>
-    </div>
-    """
-
-    components.html(html, height=435, scrolling=False)
-
-
 def prepare_display_df(df):
     if df is None or df.empty:
         return pd.DataFrame()
@@ -220,6 +158,21 @@ def prepare_display_df(df):
     display["Ratinganzeige"] = display["rating"].apply(rating_badge)
 
     return display
+
+
+def chart_preview_url(ticker):
+    ticker = str(ticker).upper().strip()
+    return f"https://finviz.com/chart.ashx?t={ticker}&ty=c&ta=1&p=d&s=l"
+
+
+def show_chart_preview(ticker):
+    url = chart_preview_url(ticker)
+
+    st.image(
+        url,
+        use_container_width=True,
+        caption=f"Chart-Vorschau {ticker} · Tageschart mit technischen Linien",
+    )
 
 
 def show_market_regime(stats):
@@ -307,8 +260,7 @@ def show_candidate_cards(df, title, empty_message, limit=20, show_charts=True):
                 st.info(interpretation)
 
             if show_charts:
-                with st.expander(f"Chart-Vorschau {ticker} anzeigen"):
-                    show_tradingview_preview(ticker, exchange)
+                show_chart_preview(ticker)
 
 
 def show_compact_table(df, title):
@@ -441,7 +393,7 @@ def show_explanation_box(min_performance):
 - **Abstand 200-Tage-Linie**: Abstand des aktuellen Kurses zur 200-Tage-Linie.
 - **Relativ zu SPY / QQQ**: Aktie läuft stärker oder schwächer als Markt/Tech.
 - **Stage-2-Score**: technische Trendqualität über Kurs, 50-Tage-Linie, 200-Tage-Linie und Performance.
-- **Chart-Vorschau**: zeigt einen TradingView-Candlestick-Chart im 3-Monats-Zeitraum.
+- **Chart-Vorschau**: einfache Bildvorschau des Tagescharts. Für Detailanalyse immer den TradingView-Link öffnen.
 - **Wichtig**: Treffer sind Kandidaten für Detailanalyse, keine Kaufempfehlung.
 """
     )
