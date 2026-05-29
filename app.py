@@ -5,7 +5,7 @@ from screener import analyze_single_symbol, run_screen
 
 
 st.set_page_config(
-    page_title="Earnings Momentum Screener von Andreas",
+    page_title="Earnings Momentum Screener",
     layout="wide",
 )
 
@@ -20,17 +20,59 @@ st.markdown(
 
         [data-testid="stSidebar"] {
             background: #111827;
-            border-right: 1px solid rgba(255,255,255,0.10);
+            border-right: 1px solid rgba(255,255,255,0.14);
         }
 
         [data-testid="stSidebar"] * {
             color: #F8FAFC !important;
+            opacity: 1 !important;
+        }
+
+        [data-testid="stSidebar"] label,
+        [data-testid="stSidebar"] p,
+        [data-testid="stSidebar"] span,
+        [data-testid="stSidebar"] div {
+            color: #F8FAFC !important;
+            opacity: 1 !important;
         }
 
         [data-testid="stSidebar"] input {
             background: #0F1726 !important;
             color: #FFFFFF !important;
-            border: 1px solid rgba(255,255,255,0.18) !important;
+            border: 1px solid rgba(255,255,255,0.28) !important;
+        }
+
+        [data-baseweb="select"] {
+            background: #0F1726 !important;
+            color: #FFFFFF !important;
+            border-radius: 10px !important;
+        }
+
+        [data-baseweb="select"] * {
+            color: #FFFFFF !important;
+            opacity: 1 !important;
+        }
+
+        [data-baseweb="tag"] {
+            background: #EF4444 !important;
+            color: #FFFFFF !important;
+            border-radius: 7px !important;
+        }
+
+        [data-baseweb="tag"] * {
+            color: #FFFFFF !important;
+            opacity: 1 !important;
+            font-weight: 800 !important;
+        }
+
+        [role="listbox"],
+        [role="option"] {
+            background: #111827 !important;
+            color: #FFFFFF !important;
+        }
+
+        [role="option"] * {
+            color: #FFFFFF !important;
         }
 
         .block-container {
@@ -53,7 +95,7 @@ st.markdown(
             padding: 20px 24px;
             border-radius: 22px;
             background: linear-gradient(135deg, #1E293B 0%, #172033 100%);
-            border: 1px solid rgba(255,255,255,0.16);
+            border: 1px solid rgba(255,255,255,0.18);
             box-shadow: 0 12px 30px rgba(0,0,0,0.32);
             margin-bottom: 24px;
         }
@@ -73,7 +115,7 @@ st.markdown(
 
         .summary-card {
             background: #1B263A;
-            border: 1px solid rgba(255,255,255,0.20);
+            border: 1px solid rgba(255,255,255,0.22);
             border-radius: 20px;
             padding: 18px 20px;
             margin-bottom: 18px;
@@ -82,15 +124,67 @@ st.markdown(
 
         .summary-title {
             font-size: 22px;
-            font-weight: 820;
+            font-weight: 850;
             margin-bottom: 8px;
             color: #FFFFFF;
         }
 
         .summary-text {
             font-size: 14px;
-            color: #F1F5F9;
+            color: #F8FAFC;
             line-height: 1.45;
+            font-weight: 650;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+            margin-bottom: 14px;
+        }
+
+        .summary-grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .summary-metric {
+            background: #1B263A;
+            border: 1px solid rgba(255,255,255,0.24);
+            border-radius: 16px;
+            padding: 13px 14px;
+            min-height: 76px;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.20);
+        }
+
+        .summary-metric-label {
+            color: #FFFFFF;
+            font-size: 12px;
+            font-weight: 850;
+            opacity: 1;
+            margin-bottom: 8px;
+        }
+
+        .summary-metric-value {
+            color: #FFFFFF;
+            font-size: 28px;
+            font-weight: 900;
+            line-height: 1.05;
+            opacity: 1;
+        }
+
+        .summary-metric-delta {
+            display: inline-flex;
+            margin-top: 6px;
+            border-radius: 999px;
+            padding: 4px 8px;
+            font-size: 12px;
+            font-weight: 850;
+            background: rgba(34,197,94,0.20);
+            color: #BBF7D0;
         }
 
         .stock-card {
@@ -124,14 +218,15 @@ st.markdown(
         }
 
         .stock-meta {
-            color: #E2E8F0;
+            color: #F1F5F9;
             font-size: 12px;
             margin-bottom: 12px;
+            font-weight: 700;
         }
 
         .metric-box {
             background: #101827;
-            border: 1px solid rgba(255,255,255,0.22);
+            border: 1px solid rgba(255,255,255,0.26);
             border-radius: 15px;
             padding: 10px 11px;
             min-height: 72px;
@@ -139,17 +234,17 @@ st.markdown(
 
         .metric-label {
             font-size: 11px;
-            color: #F8FAFC;
+            color: #FFFFFF;
             margin-bottom: 5px;
             white-space: nowrap;
-            font-weight: 800;
+            font-weight: 850;
             opacity: 1;
         }
 
         .metric-value {
             font-size: 20px;
             line-height: 1.15;
-            font-weight: 850;
+            font-weight: 900;
             color: #FFFFFF;
             white-space: nowrap;
             opacity: 1;
@@ -158,7 +253,7 @@ st.markdown(
         .metric-value-small {
             font-size: 17px;
             line-height: 1.15;
-            font-weight: 850;
+            font-weight: 900;
             color: #FFFFFF;
             white-space: nowrap;
             opacity: 1;
@@ -177,7 +272,7 @@ st.markdown(
         }
 
         .muted {
-            color: #E2E8F0 !important;
+            color: #F8FAFC !important;
         }
 
         .badge-row {
@@ -194,41 +289,42 @@ st.markdown(
             border-radius: 999px;
             padding: 5px 10px;
             font-size: 12px;
-            font-weight: 800;
-            border: 1px solid rgba(255,255,255,0.20);
+            font-weight: 850;
+            border: 1px solid rgba(255,255,255,0.22);
             background: #101827;
             color: #F8FAFC;
         }
 
         .badge-green {
-            background: rgba(34,197,94,0.20);
-            border-color: rgba(34,197,94,0.58);
+            background: rgba(34,197,94,0.22);
+            border-color: rgba(34,197,94,0.62);
             color: #BBF7D0;
         }
 
         .badge-yellow {
-            background: rgba(245,158,11,0.20);
-            border-color: rgba(245,158,11,0.58);
+            background: rgba(245,158,11,0.22);
+            border-color: rgba(245,158,11,0.62);
             color: #FDE68A;
         }
 
         .badge-red {
-            background: rgba(239,68,68,0.20);
-            border-color: rgba(239,68,68,0.58);
+            background: rgba(239,68,68,0.22);
+            border-color: rgba(239,68,68,0.62);
             color: #FECACA;
         }
 
         .badge-blue {
-            background: rgba(59,130,246,0.20);
-            border-color: rgba(59,130,246,0.58);
+            background: rgba(59,130,246,0.22);
+            border-color: rgba(59,130,246,0.62);
             color: #BFDBFE;
         }
 
         .info-line {
-            color: #E2E8F0;
+            color: #F1F5F9;
             font-size: 13px;
             line-height: 1.45;
             margin-top: 8px;
+            font-weight: 650;
         }
 
         .chart-wrap {
@@ -252,12 +348,12 @@ st.markdown(
             font-size: 11px;
             color: #334155;
             margin-top: 6px;
-            font-weight: 700;
+            font-weight: 800;
         }
 
         .sort-panel {
             background: #1B263A;
-            border: 1px solid rgba(255,255,255,0.20);
+            border: 1px solid rgba(255,255,255,0.22);
             border-radius: 20px;
             padding: 16px 18px;
             margin-top: 18px;
@@ -273,9 +369,10 @@ st.markdown(
         }
 
         .sort-hint {
-            color: #E2E8F0;
+            color: #F8FAFC;
             font-size: 13px;
             margin-bottom: 12px;
+            font-weight: 650;
         }
 
         .sort-active {
@@ -284,8 +381,8 @@ st.markdown(
             padding: 6px 12px;
             font-size: 12px;
             font-weight: 850;
-            background: rgba(37,99,235,0.26);
-            border: 1px solid rgba(37,99,235,0.62);
+            background: rgba(37,99,235,0.28);
+            border: 1px solid rgba(37,99,235,0.68);
             color: #DBEAFE;
             margin-top: 10px;
         }
@@ -293,8 +390,8 @@ st.markdown(
         .stButton > button,
         .stLinkButton > a {
             background: #2563EB !important;
-            color: white !important;
-            border: 1px solid rgba(255,255,255,0.20) !important;
+            color: #FFFFFF !important;
+            border: 1px solid rgba(255,255,255,0.24) !important;
             border-radius: 12px !important;
             font-weight: 850 !important;
             box-shadow: 0 6px 16px rgba(37,99,235,0.22);
@@ -303,46 +400,8 @@ st.markdown(
         .stButton > button:hover,
         .stLinkButton > a:hover {
             background: #1D4ED8 !important;
-            color: white !important;
-            border-color: rgba(255,255,255,0.32) !important;
-        }
-
-        div[data-testid="stMetric"] {
-            background: #1B263A !important;
-            border: 1px solid rgba(255,255,255,0.22) !important;
-            border-radius: 16px !important;
-            padding: 13px 14px !important;
-            box-shadow: 0 6px 16px rgba(0,0,0,0.20) !important;
-        }
-
-        div[data-testid="stMetric"] * {
-            opacity: 1 !important;
-        }
-
-        div[data-testid="stMetricLabel"],
-        div[data-testid="stMetricLabel"] *,
-        div[data-testid="stMetricLabel"] label,
-        div[data-testid="stMetricLabel"] p,
-        div[data-testid="stMetricLabel"] div {
-            color: #F8FAFC !important;
-            opacity: 1 !important;
-            font-weight: 800 !important;
-        }
-
-        div[data-testid="stMetricValue"],
-        div[data-testid="stMetricValue"] *,
-        div[data-testid="stMetricValue"] div {
             color: #FFFFFF !important;
-            opacity: 1 !important;
-            font-weight: 850 !important;
-        }
-
-        div[data-testid="stMetricDelta"],
-        div[data-testid="stMetricDelta"] *,
-        div[data-testid="stMetricDelta"] div {
-            color: #22C55E !important;
-            opacity: 1 !important;
-            font-weight: 800 !important;
+            border-color: rgba(255,255,255,0.34) !important;
         }
 
         .stAlert {
@@ -363,6 +422,16 @@ st.markdown(
         hr {
             border-color: rgba(255,255,255,0.12);
         }
+
+        @media (max-width: 1200px) {
+            .summary-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+
+            .summary-grid-3 {
+                grid-template-columns: repeat(1, minmax(0, 1fr));
+            }
+        }
     </style>
     """,
     unsafe_allow_html=True,
@@ -372,7 +441,7 @@ st.markdown(
 st.markdown(
     """
     <div class="main-header">
-        <div class="main-title">Earnings Momentum Screener von Andreras</div>
+        <div class="main-title">Earnings Momentum Screener von Andreas</div>
         <div class="main-subtitle">
             Analysten-Dashboard · Qualitätsfilter · Pre-/Post-Earnings · Momentum · 50-/200-Tage-Linie · Chartvorschau
         </div>
@@ -401,15 +470,15 @@ if "has_results" not in st.session_state:
 st.sidebar.header("Steuerung")
 
 lookback_days = st.sidebar.slider(
-    "Rückblick in Tagen",
+    "Rückblick in Kalendertagen",
     min_value=0,
     max_value=21,
-    value=7,
+    value=0,
     step=1,
 )
 
 forward_days = st.sidebar.slider(
-    "Ausblick in Tagen",
+    "Ausblick in Kalendertagen",
     min_value=3,
     max_value=30,
     value=14,
@@ -681,6 +750,21 @@ def metric_box_small(label, value, css_class=""):
     """
 
 
+def summary_metric(label, value, delta=None):
+    delta_html = ""
+
+    if delta is not None:
+        delta_html = f'<div class="summary-metric-delta">{delta}</div>'
+
+    return f"""
+    <div class="summary-metric">
+        <div class="summary-metric-label">{label}</div>
+        <div class="summary-metric-value">{value}</div>
+        {delta_html}
+    </div>
+    """
+
+
 def show_screening_summary(stats):
     start_date = format_date_de(stats.get("start_date"))
     end_date = format_date_de(stats.get("end_date"))
@@ -709,26 +793,41 @@ def show_screening_summary(stats):
         unsafe_allow_html=True,
     )
 
-    col1, col2, col3, col4, col5, col6 = st.columns(6)
+    st.markdown(
+        f"""
+        <div class="summary-grid">
+            {summary_metric("FMP Earnings", stats.get("fmp_earnings_found", 0))}
+            {summary_metric("Finnhub Earnings", stats.get("finnhub_earnings_found", 0))}
+            {summary_metric("TradingView Earnings", stats.get("tradingview_earnings_found", 0))}
+            {summary_metric("Kandidaten gesamt", stats.get("candidates_total", 0))}
+            {summary_metric("Mit Performance-Daten", stats.get("stocks_with_price_data", 0))}
+            {summary_metric("Treffer", hits)}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-    col1.metric("FMP Earnings", stats.get("fmp_earnings_found", 0))
-    col2.metric("Finnhub Earnings", stats.get("finnhub_earnings_found", 0))
-    col3.metric("TradingView Earnings", stats.get("tradingview_earnings_found", 0))
-    col4.metric("Kandidaten gesamt", stats.get("candidates_total", 0))
-    col5.metric("Mit Performance-Daten", stats.get("stocks_with_price_data", 0))
-    col6.metric("Treffer", hits)
-
-    col7, col8, col9 = st.columns(3)
-
-    col7.metric("SPY 2M", format_percent(stats.get("spy_perf_2m")))
-    col8.metric("QQQ 2M", format_percent(stats.get("qqq_perf_2m")))
-    col9.metric("Setup-Filter", stats.get("setup_filter", "Alle"))
+    st.markdown(
+        f"""
+        <div class="summary-grid-3">
+            {summary_metric("SPY 2M", format_percent(stats.get("spy_perf_2m")))}
+            {summary_metric("QQQ 2M", format_percent(stats.get("qqq_perf_2m")))}
+            {summary_metric("Setup-Filter", stats.get("setup_filter", "Alle"))}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     if stats.get("best_symbol") is not None:
-        st.metric(
-            "Bester geprüfter Kandidat",
-            f"{stats.get('best_company')} ({stats.get('best_symbol')})",
-            format_percent(stats.get("best_performance")),
+        st.markdown(
+            f"""
+            <div class="summary-card">
+                <div class="summary-text">Bester geprüfter Kandidat</div>
+                <div class="summary-title">{stats.get("best_company")} ({stats.get("best_symbol")})</div>
+                <span class="summary-metric-delta">{format_percent(stats.get("best_performance"))}</span>
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
 
 
