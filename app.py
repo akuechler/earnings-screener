@@ -41,6 +41,38 @@ min_performance = st.sidebar.slider(
     help="Standard: 15 %. Du kannst den Filter frei anpassen.",
 )
 
+use_tradingview = st.sidebar.checkbox(
+    "TradingView als Earnings-Quelle nutzen",
+    value=True,
+)
+
+tradingview_limit = st.sidebar.slider(
+    "TradingView Scan-Limit",
+    min_value=500,
+    max_value=10000,
+    value=3000,
+    step=500,
+    help="Je höher, desto mehr potenzielle Kandidaten, aber desto langsamer.",
+)
+
+max_candidates = st.sidebar.slider(
+    "Maximal zu prüfende Kandidaten",
+    min_value=50,
+    max_value=1000,
+    value=250,
+    step=50,
+    help="Schutz gegen Endlosläufe und API-Limits.",
+)
+
+max_workers = st.sidebar.slider(
+    "Parallelität",
+    min_value=4,
+    max_value=20,
+    value=12,
+    step=2,
+    help="Mehr Parallelität ist schneller, kann aber APIs stärker belasten.",
+)
+
 run_now = st.sidebar.button("Screener jetzt ausführen")
 
 st.sidebar.divider()
@@ -205,7 +237,7 @@ def show_explanation_box(min_performance):
 - **Gesamtscore**: Mischung aus Momentum, Trend, relativer Stärke und Stage-2-Qualität.
 - **Marktampel**: prüft SPY und QQQ. Bei roter Ampel sind Earnings-Breakouts riskanter.
 - **Chart öffnen** öffnet den TradingView-Chart zur visuellen Prüfung.
-- **WKN** wird angezeigt, wenn sie in der lokalen Mapping-Liste hinterlegt ist.
+- **Maximal zu prüfende Kandidaten** schützt deine App vor Endlosläufen und API-Limits.
 """
     )
 
@@ -252,6 +284,21 @@ if not run_now:
     st.stop()
 
 
+progress_bar = st.progress(0)
+progress_text = st.empty()
+
+
+def update_progress(done, total):
+    if total <= 0:
+        progress_bar.progress(0)
+        progress_text.info("Keine Kandidaten gefunden.")
+        return
+
+    progress = min(done / total, 1.0)
+    progress_bar.progress(progress)
+    progress_text.info(f"Prüfe Kandidaten: {done}/{total}")
+
+
 with st.spinner(
     "Screener läuft. Earnings-Kalender, Kursdaten, Relative Strength, Stage-2-Score und Marktampel werden geladen..."
 ):
@@ -259,7 +306,15 @@ with st.spinner(
         lookback_days=lookback_days,
         forward_days=forward_days,
         min_performance_2m=min_performance,
+        use_tradingview=use_tradingview,
+        tradingview_limit=tradingview_limit,
+        max_candidates=max_candidates,
+        max_workers=max_workers,
+        progress_callback=update_progress,
     )
+
+progress_bar.empty()
+progress_text.empty()
 
 
 st.subheader("Marktumfeld")
@@ -301,7 +356,7 @@ col1.metric("FMP Earnings", stats["fmp_earnings_found"])
 col2.metric("Finnhub Earnings", stats["finnhub_earnings_found"])
 col3.metric("TradingView Earnings", stats["tradingview_earnings_found"])
 col4.metric("Kandidaten gesamt", stats["candidates_total"])
-col5.metric("Mit Kursdaten geprüft", stats["stocks_with_price_data"])
+col5.metric("Geprüft", stats["candidates_scanned"])
 col6.metric("Treffer", stats["hits"])
 
 st.metric("Momentum-Filter", f">{stats['min_performance_2m']:.0f} %")
