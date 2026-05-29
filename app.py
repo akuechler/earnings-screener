@@ -46,7 +46,7 @@ st.markdown(
         }
 
         [data-baseweb="tag"] {
-            background: #EF4444 !important;
+            background: #2563EB !important;
             color: #FFFFFF !important;
             border-radius: 7px !important;
         }
@@ -105,7 +105,8 @@ st.markdown(
             color: #E2E8F0;
         }
 
-        .summary-card {
+        .summary-card,
+        .control-card {
             background: #1B263A;
             border: 1px solid rgba(255,255,255,0.22);
             border-radius: 20px;
@@ -114,14 +115,16 @@ st.markdown(
             box-shadow: 0 10px 24px rgba(0,0,0,0.24);
         }
 
-        .summary-title {
+        .summary-title,
+        .control-title {
             font-size: 22px;
             font-weight: 850;
             margin-bottom: 8px;
             color: #FFFFFF;
         }
 
-        .summary-text {
+        .summary-text,
+        .control-text {
             font-size: 14px;
             color: #F8FAFC;
             line-height: 1.45;
@@ -329,30 +332,6 @@ st.markdown(
             font-weight: 800;
         }
 
-        .sort-panel {
-            background: #1B263A;
-            border: 1px solid rgba(255,255,255,0.22);
-            border-radius: 20px;
-            padding: 16px 18px;
-            margin-top: 18px;
-            margin-bottom: 20px;
-            box-shadow: 0 10px 24px rgba(0,0,0,0.24);
-        }
-
-        .sort-title {
-            font-size: 20px;
-            font-weight: 850;
-            color: #FFFFFF;
-            margin-bottom: 6px;
-        }
-
-        .sort-hint {
-            color: #F8FAFC;
-            font-size: 13px;
-            margin-bottom: 12px;
-            font-weight: 650;
-        }
-
         .sort-active {
             display: inline-flex;
             border-radius: 999px;
@@ -363,6 +342,7 @@ st.markdown(
             border: 1px solid rgba(37,99,235,0.68);
             color: #DBEAFE;
             margin-top: 10px;
+            margin-bottom: 8px;
         }
 
         .stButton > button,
@@ -867,64 +847,143 @@ def sort_dataframe(df, sort_key):
     return sorted_df.sort_values("score", ascending=False)
 
 
-def show_sort_buttons():
+def show_top_control_panel(display_all):
     st.markdown(
         """
-        <div class="sort-panel">
-            <div class="sort-title">Sortierung</div>
-            <div class="sort-hint">
-                Diese Sortierung wirkt auf Treffer und alle Kandidaten. Die Ergebnisse bleiben beim Sortieren gespeichert.
+        <div class="control-card">
+            <div class="control-title">Anzeige, Filter und Sortierung</div>
+            <div class="control-text">
+                Wähle oben, welche Bereiche angezeigt werden sollen. Die Filter wirken auf Treffer, Kandidaten, Tabellen und Charts.
             </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    b1, b2, b3, b4 = st.columns(4)
+    a1, a2, a3 = st.columns([1.2, 1.2, 1])
 
-    with b1:
-        if st.button("Score ↓", use_container_width=True, key="sort_score_top"):
-            st.session_state.sort_key = "score"
+    with a1:
+        visible_sections = st.multiselect(
+            "Anzeigen",
+            options=[
+                "Treffer-Karten",
+                "Alle Kandidaten-Karten",
+                "Kompakte Tabelle",
+                "Technische Detailtabelle",
+                "Top-15-Score-Chart",
+                "Top-15-Momentum-Chart",
+                "Lesart",
+            ],
+            default=[
+                "Treffer-Karten",
+                "Alle Kandidaten-Karten",
+                "Kompakte Tabelle",
+            ],
+        )
 
-    with b2:
-        if st.button("2M-Momentum ↓", use_container_width=True, key="sort_momentum_top"):
-            st.session_state.sort_key = "momentum"
+    with a2:
+        sort_choice = st.selectbox(
+            "Sortierung",
+            options=[
+                "Score ↓",
+                "2M-Momentum ↓",
+                "Stage 2 ↓",
+                "Earnings früh → spät",
+                "Earnings spät → früh",
+                "Market Cap ↓",
+                "Dollar-Volumen ↓",
+                "Abstand 50-Tage ↓",
+                "Abstand 200-Tage ↓",
+                "Ticker A–Z",
+            ],
+            index=0,
+        )
 
-    with b3:
-        if st.button("Stage 2 ↓", use_container_width=True, key="sort_stage2_top"):
-            st.session_state.sort_key = "stage2"
+    with a3:
+        only_hits = st.checkbox(
+            "Nur Momentum-Treffer",
+            value=False,
+        )
 
-    with b4:
-        if st.button("Ticker A–Z", use_container_width=True, key="sort_ticker_top"):
-            st.session_state.sort_key = "ticker"
+    sort_map = {
+        "Score ↓": "score",
+        "2M-Momentum ↓": "momentum",
+        "Stage 2 ↓": "stage2",
+        "Earnings früh → spät": "earnings_date_asc",
+        "Earnings spät → früh": "earnings_date_desc",
+        "Market Cap ↓": "market_cap",
+        "Dollar-Volumen ↓": "dollar_volume",
+        "Abstand 50-Tage ↓": "distance_50",
+        "Abstand 200-Tage ↓": "distance_200",
+        "Ticker A–Z": "ticker",
+    }
 
-    b5, b6, b7, b8 = st.columns(4)
+    st.session_state.sort_key = sort_map.get(sort_choice, "score")
 
-    with b5:
-        if st.button("Earnings früh → spät", use_container_width=True, key="sort_earnings_asc_top"):
-            st.session_state.sort_key = "earnings_date_asc"
+    f1, f2, f3, f4 = st.columns(4)
 
-    with b6:
-        if st.button("Earnings spät → früh", use_container_width=True, key="sort_earnings_desc_top"):
-            st.session_state.sort_key = "earnings_date_desc"
+    with f1:
+        status_filter = st.multiselect(
+            "Status",
+            options=sorted(display_all["status"].dropna().unique()),
+            default=sorted(display_all["status"].dropna().unique()),
+        )
 
-    with b7:
-        if st.button("Market Cap ↓", use_container_width=True, key="sort_market_cap_top"):
-            st.session_state.sort_key = "market_cap"
+    with f2:
+        setup_type_filter = st.multiselect(
+            "Setup",
+            options=sorted(display_all["setup_type"].dropna().unique()),
+            default=sorted(display_all["setup_type"].dropna().unique()),
+        )
 
-    with b8:
-        if st.button("Dollar-Volumen ↓", use_container_width=True, key="sort_dollar_volume_top"):
-            st.session_state.sort_key = "dollar_volume"
+    with f3:
+        source_filter = st.multiselect(
+            "Earnings-Quelle",
+            options=sorted(display_all["calendar_source"].dropna().unique()),
+            default=sorted(display_all["calendar_source"].dropna().unique()),
+        )
 
-    b9, b10 = st.columns(2)
+    with f4:
+        stage_filter = st.multiselect(
+            "Stage-2-Status",
+            options=sorted(display_all["stage2_status"].dropna().unique()),
+            default=sorted(display_all["stage2_status"].dropna().unique()),
+        )
 
-    with b9:
-        if st.button("Abstand 50-Tage ↓", use_container_width=True, key="sort_distance50_top"):
-            st.session_state.sort_key = "distance_50"
+    f5, f6, f7, f8 = st.columns(4)
 
-    with b10:
-        if st.button("Abstand 200-Tage ↓", use_container_width=True, key="sort_distance200_top"):
-            st.session_state.sort_key = "distance_200"
+    with f5:
+        min_score_filter = st.slider(
+            "Mindest-Score",
+            min_value=0,
+            max_value=100,
+            value=0,
+            step=5,
+        )
+
+    with f6:
+        min_stage2_filter = st.slider(
+            "Mindest-Stage-2",
+            min_value=0,
+            max_value=100,
+            value=0,
+            step=5,
+        )
+
+    with f7:
+        min_momentum_filter = st.slider(
+            "Mindest-2M-Momentum",
+            min_value=-50,
+            max_value=200,
+            value=-50,
+            step=5,
+        )
+
+    with f8:
+        chart_toggle = st.checkbox(
+            "Charts in Karten anzeigen",
+            value=show_chart_previews,
+        )
 
     sort_labels = {
         "score": "Score absteigend",
@@ -947,6 +1006,39 @@ def show_sort_buttons():
         """,
         unsafe_allow_html=True,
     )
+
+    return {
+        "visible_sections": visible_sections,
+        "status_filter": status_filter,
+        "setup_type_filter": setup_type_filter,
+        "source_filter": source_filter,
+        "stage_filter": stage_filter,
+        "min_score_filter": min_score_filter,
+        "min_stage2_filter": min_stage2_filter,
+        "min_momentum_filter": min_momentum_filter,
+        "only_hits": only_hits,
+        "chart_toggle": chart_toggle,
+    }
+
+
+def apply_top_filters(df, filters):
+    if df is None or df.empty:
+        return df
+
+    filtered = df[
+        df["status"].isin(filters["status_filter"])
+        & df["setup_type"].isin(filters["setup_type_filter"])
+        & df["calendar_source"].isin(filters["source_filter"])
+        & df["stage2_status"].isin(filters["stage_filter"])
+        & (df["score"] >= filters["min_score_filter"])
+        & (df["stage2_score"] >= filters["min_stage2_filter"])
+        & (df["performance_2m_proxy_pct"] >= filters["min_momentum_filter"])
+    ].copy()
+
+    if filters["only_hits"]:
+        filtered = filtered[filtered["performance_2m_proxy_pct"] >= min_performance]
+
+    return sort_dataframe(filtered, st.session_state.sort_key)
 
 
 def show_candidate_cards(df, title, empty_message, limit=20, show_charts=True):
@@ -1350,117 +1442,78 @@ if all_df is None or all_df.empty:
 
 display_all = prepare_display_df(all_df)
 
-st.subheader("Sortierung")
-show_sort_buttons()
+filters = show_top_control_panel(display_all)
 
-hits_sorted = sort_dataframe(hits_df, st.session_state.sort_key)
-all_sorted = sort_dataframe(all_df, st.session_state.sort_key)
-
-st.divider()
-
-show_candidate_cards(
-    hits_sorted,
-    title="Treffer: Aktien über Momentum-Filter",
-    empty_message="Keine Aktie erfüllt aktuell deinen Momentum-Filter.",
-    limit=max_cards,
-    show_charts=show_chart_previews,
-)
+filtered_all = apply_top_filters(all_df, filters)
+filtered_hits = apply_top_filters(hits_df, filters)
 
 st.divider()
 
-st.subheader("Filter für alle Kandidaten")
-
-f1, f2, f3, f4 = st.columns(4)
-
-with f1:
-    status_filter = st.multiselect(
-        "Status",
-        options=sorted(display_all["status"].dropna().unique()),
-        default=sorted(display_all["status"].dropna().unique()),
+if "Treffer-Karten" in filters["visible_sections"]:
+    show_candidate_cards(
+        filtered_hits,
+        title="Treffer: Aktien über Momentum-Filter",
+        empty_message="Keine Aktie erfüllt aktuell deine Filter.",
+        limit=max_cards,
+        show_charts=filters["chart_toggle"],
     )
 
-with f2:
-    setup_type_filter = st.multiselect(
-        "Setup",
-        options=sorted(display_all["setup_type"].dropna().unique()),
-        default=sorted(display_all["setup_type"].dropna().unique()),
+if "Alle Kandidaten-Karten" in filters["visible_sections"]:
+    st.divider()
+    show_candidate_cards(
+        filtered_all,
+        title="Alle geprüften Kandidaten — Kartenansicht",
+        empty_message="Keine Kandidaten nach Filter.",
+        limit=max_cards,
+        show_charts=filters["chart_toggle"],
     )
 
-with f3:
-    source_filter = st.multiselect(
-        "Earnings-Quelle",
-        options=sorted(display_all["calendar_source"].dropna().unique()),
-        default=sorted(display_all["calendar_source"].dropna().unique()),
-    )
-
-with f4:
-    stage_filter = st.multiselect(
-        "Stage-2-Status",
-        options=sorted(display_all["stage2_status"].dropna().unique()),
-        default=sorted(display_all["stage2_status"].dropna().unique()),
-    )
-
-filtered_all = all_df[
-    all_df["status"].isin(status_filter)
-    & all_df["setup_type"].isin(setup_type_filter)
-    & all_df["calendar_source"].isin(source_filter)
-    & all_df["stage2_status"].isin(stage_filter)
-]
-
-filtered_all = sort_dataframe(filtered_all, st.session_state.sort_key)
-
-st.divider()
-
-show_candidate_cards(
-    filtered_all,
-    title="Alle geprüften Kandidaten — Kartenansicht",
-    empty_message="Keine Kandidaten nach Filter.",
-    limit=max_cards,
-    show_charts=show_chart_previews,
-)
-
-with st.expander("Kompakte Tabelle anzeigen"):
+if "Kompakte Tabelle" in filters["visible_sections"]:
+    st.divider()
     show_compact_table(
         filtered_all,
-        title="Alle geprüften Kandidaten — kompakte Übersicht",
+        title="Kompakte Tabelle",
     )
 
-with st.expander("Technische Detailtabelle anzeigen"):
+if "Technische Detailtabelle" in filters["visible_sections"]:
+    st.divider()
     show_detail_table(filtered_all)
 
-st.divider()
+if "Top-15-Score-Chart" in filters["visible_sections"]:
+    st.divider()
+    st.subheader("Top 15 nach Gesamtscore")
 
-st.subheader("Top 15 nach Gesamtscore")
+    top15_score = filtered_all.sort_values("score", ascending=False).head(15)
 
-top15_score = filtered_all.sort_values("score", ascending=False).head(15)
+    st.bar_chart(
+        top15_score.rename(columns={"symbol": "Ticker", "score": "Gesamtscore"}),
+        x="Ticker",
+        y="Gesamtscore",
+    )
 
-st.bar_chart(
-    top15_score.rename(columns={"symbol": "Ticker", "score": "Gesamtscore"}),
-    x="Ticker",
-    y="Gesamtscore",
-)
+if "Top-15-Momentum-Chart" in filters["visible_sections"]:
+    st.divider()
+    st.subheader("Top 15 nach 2M-Performance Proxy")
 
-st.subheader("Top 15 nach 2M-Performance Proxy")
+    top15_momentum = filtered_all.sort_values(
+        "performance_2m_proxy_pct",
+        ascending=False,
+    ).head(15)
 
-top15_momentum = filtered_all.sort_values(
-    "performance_2m_proxy_pct",
-    ascending=False,
-).head(15)
+    st.bar_chart(
+        top15_momentum.rename(
+            columns={
+                "symbol": "Ticker",
+                "performance_2m_proxy_pct": "2M-Performance Proxy %",
+            }
+        ),
+        x="Ticker",
+        y="2M-Performance Proxy %",
+    )
 
-st.bar_chart(
-    top15_momentum.rename(
-        columns={
-            "symbol": "Ticker",
-            "performance_2m_proxy_pct": "2M-Performance Proxy %",
-        }
-    ),
-    x="Ticker",
-    y="2M-Performance Proxy %",
-)
-
-st.divider()
-
-show_explanation_box(min_performance)
+if "Lesart" in filters["visible_sections"]:
+    st.divider()
+    show_explanation_box(min_performance)
 
 st.caption(
     "Keine Anlageberatung. TradingView-Daten dienen als Screening-Grundlage. "
