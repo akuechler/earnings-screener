@@ -31,6 +31,19 @@ DATA_DIR = "data"
 FILTERED_FILE = os.path.join(DATA_DIR, "earnings_momentum_screen.csv")
 ALL_FILE = os.path.join(DATA_DIR, "earnings_momentum_all.csv")
 
+DEFAULT_EXTRA_SYMBOLS = [
+    "DELL",
+    "NVDA",
+    "MU",
+    "AVGO",
+    "AMD",
+    "CRM",
+    "ORCL",
+    "ADBE",
+    "COST",
+    "DOCU",
+]
+
 WKN_MAP = {
     "DELL": "A2N6WP",
     "ADBE": "871981",
@@ -110,6 +123,7 @@ COLUMNS = [
     "isin",
     "exchange",
     "earnings_date",
+    "calendar_source",
     "current_close",
     "performance_2m_pct",
     "above_sma_20",
@@ -368,7 +382,14 @@ def chart_url(symbol, exchange="NASDAQ"):
     return f"https://www.tradingview.com/chart/?symbol={tv_exchange}%3A{symbol}"
 
 
-def build_result_row(symbol, company, earnings_date, momentum, min_performance):
+def build_result_row(
+    symbol,
+    company,
+    earnings_date,
+    calendar_source,
+    momentum,
+    min_performance,
+):
     profile = get_company_profile(symbol)
 
     company_name = (
@@ -401,6 +422,7 @@ def build_result_row(symbol, company, earnings_date, momentum, min_performance):
         "isin": isin,
         "exchange": exchange,
         "earnings_date": earnings_date,
+        "calendar_source": calendar_source,
         "current_close": round(momentum["current_close"], 2),
         "performance_2m_pct": performance,
         "above_sma_20": momentum["above_sma_20"],
@@ -435,6 +457,7 @@ def analyze_single_symbol(symbol, min_performance_2m=15.0):
                     symbol=symbol,
                     company="",
                     earnings_date="nicht geprüft",
+                    calendar_source="Manuelle Prüfung",
                     momentum=momentum,
                     min_performance=min_performance_2m,
                 )
@@ -447,7 +470,29 @@ def analyze_single_symbol(symbol, min_performance_2m=15.0):
         return None
 
 
-def run_screen(lookback_days=7, forward_days=14, min_performance_2m=15.0):
+def parse_extra_symbols(extra_symbols_text):
+    if not extra_symbols_text:
+        return []
+
+    raw_items = extra_symbols_text.replace(";", ",").replace("\n", ",").split(",")
+
+    symbols = []
+
+    for item in raw_items:
+        symbol = item.strip().upper()
+
+        if symbol:
+            symbols.append(symbol)
+
+    return symbols
+
+
+def run_screen(
+    lookback_days=7,
+    forward_days=14,
+    min_performance_2m=15.0,
+    extra_symbols_text="",
+):
     os.makedirs(DATA_DIR, exist_ok=True)
 
     today = date.today()
@@ -460,10 +505,8 @@ def run_screen(lookback_days=7, forward_days=14, min_performance_2m=15.0):
         print(f"Earnings-Kalender konnte nicht geladen werden: {error}")
         earnings = []
 
-    all_results = []
+    candidates = {}
     skipped_no_symbol = 0
-    skipped_no_prices = 0
-    symbols_seen = set()
 
     for item in earnings:
         symbol = item.get("symbol")
@@ -481,11 +524,33 @@ def run_screen(lookback_days=7, forward_days=14, min_performance_2m=15.0):
 
         symbol = symbol.upper().strip()
 
-        if symbol in symbols_seen:
+        candidates[symbol] = {
+            "symbol": symbol,
+            "company": company,
+            "earnings_date": earnings_date,
+            "calendar_source": "FMP Earnings Calendar",
+        }
+
+    extra_symbols = DEFAULT_EXTRA_SYMBOLS + parse_extra_symbols(extra_symbols_text)
+
+    for symbol in extra_symbols:
+        symbol = symbol.upper().strip()
+
+        if not symbol:
             continue
 
-        symbols_seen.add(symbol)
+        if symbol not in candidates:
+            candidates[symbol] = {
+                "symbol": symbol,
+                "company": COMPANY_FALLBACK_MAP.get(symbol, symbol),
+                "earnings_date": "Watchlist / manuell",
+                "calendar_source": "Watchlist",
+            }
 
+    all_results = []
+    skipped_no_prices = 0
+
+    for symbol, candidate in candidates.items():
         try:
             prices = get_historical_prices(symbol)
             momentum = calculate_momentum(prices)
@@ -497,8 +562,9 @@ def run_screen(lookback_days=7, forward_days=14, min_performance_2m=15.0):
             all_results.append(
                 build_result_row(
                     symbol=symbol,
-                    company=company,
-                    earnings_date=earnings_date,
+                    company=candidate["company"],
+                    earnings_date=candidate["earnings_date"],
+                    calendar_source=candidate["calendar_source"],
                     momentum=momentum,
                     min_performance=min_performance_2m,
                 )
@@ -532,6 +598,8 @@ def run_screen(lookback_days=7, forward_days=14, min_performance_2m=15.0):
 
     stats = {
         "earnings_found": len(earnings),
+        "watchlist_added": len(extra_symbols),
+        "candidates_total": len(candidates),
         "stocks_with_price_data": len(all_df),
         "hits": len(filtered_df),
         "skipped_no_symbol": skipped_no_symbol,
