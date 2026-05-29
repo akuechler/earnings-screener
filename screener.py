@@ -136,11 +136,12 @@ def score_stock(momentum):
     return score, rating
 
 
-def run_screen(days_ahead=7, min_performance_2m=15.0):
+def run_screen(lookback_days=7, forward_days=14, min_performance_2m=15.0):
     os.makedirs(DATA_DIR, exist_ok=True)
 
-    start_date = date.today()
-    end_date = start_date + timedelta(days=days_ahead)
+    today = date.today()
+    start_date = today - timedelta(days=lookback_days)
+    end_date = today + timedelta(days=forward_days)
 
     earnings = get_earnings_calendar(start_date, end_date)
 
@@ -166,7 +167,6 @@ def run_screen(days_ahead=7, min_performance_2m=15.0):
                 continue
 
             score, rating = score_stock(momentum)
-
             performance = round(momentum["performance_2m"], 2)
 
             if performance >= min_performance_2m:
