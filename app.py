@@ -160,9 +160,43 @@ def prepare_display_df(df):
     return display
 
 
-def chart_preview_url(ticker):
+def show_chart_preview(ticker):
     ticker = str(ticker).upper().strip()
-    return f"https://finviz.com/chart.ashx?t={ticker}&ty=c&ta=1&p=d&s=l"
+    url = chart_preview_url(ticker)
+
+    st.markdown(
+        f"""
+        <div style="
+            max-width: 560px;
+            margin-top: 8px;
+            margin-bottom: 8px;
+            border: 1px solid rgba(0,0,0,0.10);
+            border-radius: 10px;
+            overflow: hidden;
+            background: #ffffff;
+        ">
+            <img
+                src="{url}"
+                alt="Chart {ticker}"
+                style="
+                    width: 560px;
+                    max-width: 100%;
+                    height: auto;
+                    display: block;
+                "
+            />
+        </div>
+        <div style="
+            font-size: 12px;
+            color: #666;
+            margin-top: -4px;
+            margin-bottom: 8px;
+        ">
+            Chart-Vorschau {ticker} · Für Detailanalyse TradingView öffnen
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def show_chart_preview(ticker):
