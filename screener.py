@@ -1,10 +1,15 @@
 import os
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from io import StringIO
 
 import pandas as pd
 import requests
 import streamlit as st
+
+try:
+    from tradingview_screener import Query
+except Exception:
+    Query = None
 
 
 def get_secret(name):
@@ -165,6 +170,47 @@ def get_json(url: str):
     return response.json()
 
 
+def normalize_symbol(symbol):
+    if not symbol:
+        return ""
+
+    symbol = str(symbol).upper().strip()
+
+    if ":" in symbol:
+        symbol = symbol.split(":")[-1]
+
+    if "." in symbol:
+        symbol = symbol.split(".")[0]
+
+    return symbol
+
+
+def parse_any_date(value):
+    if value is None or value == "" or pd.isna(value):
+        return None
+
+    try:
+        if isinstance(value, (int, float)):
+            if value > 10_000_000_000:
+                return datetime.utcfromtimestamp(value / 1000).date()
+            if value > 1_000_000_000:
+                return datetime.utcfromtimestamp(value).date()
+            if value > 10_000:
+                return pd.to_datetime(str(int(value)), format="%Y%m%d").date()
+    except Exception:
+        pass
+
+    try:
+        parsed = pd.to_datetime(value, errors="coerce", utc=False)
+
+        if pd.isna(parsed):
+            return None
+
+        return parsed.date()
+    except Exception:
+        return None
+
+
 def get_fmp_earnings_calendar(start_date, end_date):
     url = (
         "https://financialmodelingprep.com/stable/earnings-calendar"
@@ -201,22 +247,82 @@ def get_finnhub_earnings_calendar(start_date, end_date):
     return []
 
 
-def normalize_symbol(symbol):
-    if not symbol:
-        return ""
+def get_tradingview_earnings_calendar(start_date, end_date, limit=20000):
+    if Query is None:
+        return [], "tradingview-screener ist nicht installiert oder konnte nicht importiert werden."
 
-    symbol = str(symbol).upper().strip()
+    try:
+        _, df = (
+            Query()
+            .select(
+                "name",
+                "description",
+                "exchange",
+                "market_cap_basic",
+                "close",
+                "earnings_release_date",
+                "earnings_release_next_date",
+            )
+            .limit(limit)
+            .get_scanner_data()
+        )
+    except Exception as error:
+        return [], f"TradingView Screener Fehler: {error}"
 
-    if "." in symbol:
-        return symbol.split(".")[0]
+    if df is None or df.empty:
+        return [], None
 
-    return symbol
+    results = []
+
+    for _, row in df.iterrows():
+        raw_ticker = row.get("ticker")
+        symbol = normalize_symbol(raw_ticker or row.get("name"))
+
+        if not symbol:
+            continue
+
+        company = (
+            row.get("description")
+            or COMPANY_FALLBACK_MAP.get(symbol)
+            or row.get("name")
+            or symbol
+        )
+
+        exchange = row.get("exchange") or EXCHANGE_FALLBACK_MAP.get(symbol) or "NASDAQ"
+
+        recent_date = parse_any_date(row.get("earnings_release_date"))
+        upcoming_date = parse_any_date(row.get("earnings_release_next_date"))
+
+        selected_dates = []
+
+        if recent_date and start_date <= recent_date <= end_date:
+            selected_dates.append(("TradingView Recent Earnings", recent_date))
+
+        if upcoming_date and start_date <= upcoming_date <= end_date:
+            selected_dates.append(("TradingView Upcoming Earnings", upcoming_date))
+
+        for source, earnings_date in selected_dates:
+            results.append(
+                {
+                    "symbol": symbol,
+                    "company": company,
+                    "exchange": exchange,
+                    "date": str(earnings_date),
+                    "source": source,
+                }
+            )
+
+    return results, None
 
 
 def build_candidates_from_calendars(start_date, end_date):
     candidates = {}
     fmp_earnings = get_fmp_earnings_calendar(start_date, end_date)
     finnhub_earnings = get_finnhub_earnings_calendar(start_date, end_date)
+    tradingview_earnings, tradingview_error = get_tradingview_earnings_calendar(
+        start_date,
+        end_date,
+    )
 
     skipped_no_symbol = 0
 
@@ -240,6 +346,7 @@ def build_candidates_from_calendars(start_date, end_date):
         candidates[symbol] = {
             "symbol": symbol,
             "company": company,
+            "exchange": EXCHANGE_FALLBACK_MAP.get(symbol, "NASDAQ"),
             "earnings_date": earnings_date,
             "calendar_source": "FMP",
         }
@@ -265,11 +372,46 @@ def build_candidates_from_calendars(start_date, end_date):
             candidates[symbol] = {
                 "symbol": symbol,
                 "company": COMPANY_FALLBACK_MAP.get(symbol, symbol),
+                "exchange": EXCHANGE_FALLBACK_MAP.get(symbol, "NASDAQ"),
                 "earnings_date": earnings_date,
                 "calendar_source": "Finnhub",
             }
 
-    return candidates, fmp_earnings, finnhub_earnings, skipped_no_symbol
+    for item in tradingview_earnings:
+        symbol = normalize_symbol(item.get("symbol"))
+
+        if not symbol:
+            skipped_no_symbol += 1
+            continue
+
+        earnings_date = item.get("date") or "n/a"
+        source = item.get("source") or "TradingView"
+
+        if symbol in candidates:
+            old_source = candidates[symbol]["calendar_source"]
+
+            if "TradingView" not in old_source:
+                candidates[symbol]["calendar_source"] = f"{old_source} + TradingView"
+
+            if candidates[symbol]["earnings_date"] in ["n/a", None, ""]:
+                candidates[symbol]["earnings_date"] = earnings_date
+        else:
+            candidates[symbol] = {
+                "symbol": symbol,
+                "company": item.get("company") or COMPANY_FALLBACK_MAP.get(symbol, symbol),
+                "exchange": item.get("exchange") or EXCHANGE_FALLBACK_MAP.get(symbol, "NASDAQ"),
+                "earnings_date": earnings_date,
+                "calendar_source": source,
+            }
+
+    return (
+        candidates,
+        fmp_earnings,
+        finnhub_earnings,
+        tradingview_earnings,
+        tradingview_error,
+        skipped_no_symbol,
+    )
 
 
 def get_company_profile_from_fmp(symbol):
@@ -666,9 +808,14 @@ def run_screen(
     start_date = today - timedelta(days=lookback_days)
     end_date = today + timedelta(days=forward_days)
 
-    candidates, fmp_earnings, finnhub_earnings, skipped_no_symbol = (
-        build_candidates_from_calendars(start_date, end_date)
-    )
+    (
+        candidates,
+        fmp_earnings,
+        finnhub_earnings,
+        tradingview_earnings,
+        tradingview_error,
+        skipped_no_symbol,
+    ) = build_candidates_from_calendars(start_date, end_date)
 
     all_results = []
     skipped_no_prices = 0
@@ -722,6 +869,8 @@ def run_screen(
     stats = {
         "fmp_earnings_found": len(fmp_earnings),
         "finnhub_earnings_found": len(finnhub_earnings),
+        "tradingview_earnings_found": len(tradingview_earnings),
+        "tradingview_error": tradingview_error,
         "candidates_total": len(candidates),
         "stocks_with_price_data": len(all_df),
         "hits": len(filtered_df),
