@@ -151,9 +151,15 @@ COLUMNS = [
     "calendar_source",
     "current_close",
     "performance_2m_pct",
+    "spy_relative_2m_pct",
+    "qqq_relative_2m_pct",
     "above_sma_20",
     "above_sma_50",
+    "above_sma_150",
+    "above_sma_200",
     "distance_sma_50_pct",
+    "stage2_score",
+    "stage2_status",
     "score",
     "rating",
     "status",
@@ -317,6 +323,7 @@ def get_tradingview_earnings_calendar(start_date, end_date, limit=20000):
 
 def build_candidates_from_calendars(start_date, end_date):
     candidates = {}
+
     fmp_earnings = get_fmp_earnings_calendar(start_date, end_date)
     finnhub_earnings = get_finnhub_earnings_calendar(start_date, end_date)
     tradingview_earnings, tradingview_error = get_tradingview_earnings_calendar(
@@ -561,7 +568,7 @@ def get_historical_prices(symbol):
     try:
         df = get_historical_prices_from_fmp(symbol)
 
-        if df is not None and len(df) >= 50:
+        if df is not None and len(df) >= 220:
             return df
     except Exception as error:
         print(f"FMP-Kursdaten fehlgeschlagen bei {symbol}: {error}")
@@ -569,7 +576,7 @@ def get_historical_prices(symbol):
     try:
         df = get_historical_prices_from_stooq(symbol)
 
-        if df is not None and len(df) >= 50:
+        if df is not None and len(df) >= 220:
             return df
     except Exception as error:
         print(f"Stooq-Kursdaten fehlgeschlagen bei {symbol}: {error}")
@@ -577,23 +584,102 @@ def get_historical_prices(symbol):
     return None
 
 
-def calculate_momentum(df):
-    if df is None or len(df) < 50:
+def calculate_price_performance(df, periods):
+    if df is None or len(df) <= periods:
         return None
 
     current_close = float(df.iloc[-1]["close"])
-    close_42_days_ago = float(df.iloc[-43]["close"])
+    past_close = float(df.iloc[-periods - 1]["close"])
 
-    if close_42_days_ago <= 0:
+    if past_close <= 0:
         return None
 
-    performance_2m = (current_close / close_42_days_ago - 1) * 100
+    return (current_close / past_close - 1) * 100
 
-    sma_20 = df["close"].tail(20).mean()
-    sma_50 = df["close"].tail(50).mean()
 
-    if sma_50 <= 0:
+def calculate_stage2(df, stock_vs_spy_2m):
+    if df is None or len(df) < 220:
+        return {
+            "stage2_score": 0,
+            "stage2_status": "zu wenig Daten",
+            "above_sma_150": False,
+            "above_sma_200": False,
+        }
+
+    close = df["close"]
+    current_close = float(close.iloc[-1])
+
+    sma50 = close.tail(50).mean()
+    sma150 = close.tail(150).mean()
+    sma200 = close.tail(200).mean()
+    sma200_20_days_ago = close.iloc[-220:-20].mean()
+
+    high_52w = close.tail(252).max() if len(close) >= 252 else close.max()
+    low_52w = close.tail(252).min() if len(close) >= 252 else close.min()
+
+    checks = {
+        "price_above_sma50": current_close > sma50,
+        "price_above_sma150": current_close > sma150,
+        "price_above_sma200": current_close > sma200,
+        "sma50_above_sma150": sma50 > sma150,
+        "sma150_above_sma200": sma150 > sma200,
+        "sma200_rising": sma200 > sma200_20_days_ago,
+        "price_near_high": current_close >= high_52w * 0.75,
+        "price_above_low": current_close >= low_52w * 1.30,
+        "outperforming_spy": stock_vs_spy_2m is not None and stock_vs_spy_2m > 0,
+    }
+
+    passed = sum(1 for value in checks.values() if value)
+    stage2_score = round((passed / len(checks)) * 100, 0)
+
+    if stage2_score >= 80:
+        stage2_status = "Stage 2 stark"
+    elif stage2_score >= 60:
+        stage2_status = "Stage 2 möglich"
+    elif stage2_score >= 40:
+        stage2_status = "Trend gemischt"
+    else:
+        stage2_status = "kein Stage-2-Trend"
+
+    return {
+        "stage2_score": stage2_score,
+        "stage2_status": stage2_status,
+        "above_sma_150": checks["price_above_sma150"],
+        "above_sma_200": checks["price_above_sma200"],
+    }
+
+
+def calculate_momentum(df, spy_perf_2m=None, qqq_perf_2m=None):
+    if df is None or len(df) < 220:
         return None
+
+    current_close = float(df.iloc[-1]["close"])
+
+    performance_2m = calculate_price_performance(df, 42)
+
+    if performance_2m is None:
+        return None
+
+    close = df["close"]
+
+    sma20 = close.tail(20).mean()
+    sma50 = close.tail(50).mean()
+    sma150 = close.tail(150).mean()
+    sma200 = close.tail(200).mean()
+
+    if sma50 <= 0:
+        return None
+
+    spy_relative_2m = None
+    qqq_relative_2m = None
+
+    if spy_perf_2m is not None:
+        spy_relative_2m = performance_2m - spy_perf_2m
+
+    if qqq_perf_2m is not None:
+        qqq_relative_2m = performance_2m - qqq_perf_2m
+
+    stage2 = calculate_stage2(df, spy_relative_2m)
 
     data_source = "n/a"
 
@@ -603,11 +689,19 @@ def calculate_momentum(df):
     return {
         "current_close": current_close,
         "performance_2m": performance_2m,
-        "sma_20": sma_20,
-        "sma_50": sma_50,
-        "above_sma_20": current_close > sma_20,
-        "above_sma_50": current_close > sma_50,
-        "distance_sma_50": (current_close / sma_50 - 1) * 100,
+        "spy_relative_2m": spy_relative_2m,
+        "qqq_relative_2m": qqq_relative_2m,
+        "sma_20": sma20,
+        "sma_50": sma50,
+        "sma_150": sma150,
+        "sma_200": sma200,
+        "above_sma_20": current_close > sma20,
+        "above_sma_50": current_close > sma50,
+        "above_sma_150": current_close > sma150,
+        "above_sma_200": current_close > sma200,
+        "distance_sma_50": (current_close / sma50 - 1) * 100,
+        "stage2_score": stage2["stage2_score"],
+        "stage2_status": stage2["stage2_status"],
         "data_source": data_source,
     }
 
@@ -616,19 +710,35 @@ def score_stock(momentum):
     score = 0
 
     if momentum["performance_2m"] >= 15:
-        score += 30
+        score += 25
 
     if momentum["performance_2m"] >= 25:
         score += 10
 
     if momentum["above_sma_20"]:
-        score += 15
+        score += 10
 
     if momentum["above_sma_50"]:
-        score += 20
-
-    if momentum["distance_sma_50"] >= 10:
         score += 10
+
+    if momentum["above_sma_150"]:
+        score += 10
+
+    if momentum["above_sma_200"]:
+        score += 10
+
+    if momentum["spy_relative_2m"] is not None and momentum["spy_relative_2m"] > 0:
+        score += 10
+
+    if momentum["qqq_relative_2m"] is not None and momentum["qqq_relative_2m"] > 0:
+        score += 5
+
+    if momentum["stage2_score"] >= 80:
+        score += 10
+    elif momentum["stage2_score"] >= 60:
+        score += 5
+
+    score = min(score, 100)
 
     if score >= 80:
         rating = "A"
@@ -642,11 +752,18 @@ def score_stock(momentum):
     return score, rating
 
 
-def classify_stock(performance, min_performance):
+def classify_stock(performance, min_performance, spy_relative, stage2_score):
+    if performance >= min_performance and spy_relative is not None and spy_relative > 0 and stage2_score >= 60:
+        return (
+            "Treffer",
+            "Momentum-Setup mit relativer Stärke und akzeptabler Trendqualität.",
+            "Detailanalyse prüfen",
+        )
+
     if performance >= min_performance:
         return (
             "Treffer",
-            "Aktie erfüllt den eingestellten Momentum-Filter. Das ist ein Kandidat für eine Detailanalyse.",
+            "Aktie erfüllt den Momentum-Filter, aber relative Stärke oder Stage-2-Qualität sollte geprüft werden.",
             "Detailanalyse prüfen",
         )
 
@@ -739,8 +856,18 @@ def build_result_row(
     exchange = profile.get("exchange") or EXCHANGE_FALLBACK_MAP.get(symbol) or "NASDAQ"
 
     score, rating = score_stock(momentum)
+
     performance = round(momentum["performance_2m"], 2)
-    status, interpretation, action = classify_stock(performance, min_performance)
+    spy_relative = momentum.get("spy_relative_2m")
+    qqq_relative = momentum.get("qqq_relative_2m")
+    stage2_score = momentum.get("stage2_score", 0)
+
+    status, interpretation, action = classify_stock(
+        performance,
+        min_performance,
+        spy_relative,
+        stage2_score,
+    )
 
     return {
         "symbol": symbol,
@@ -752,9 +879,15 @@ def build_result_row(
         "calendar_source": calendar_source,
         "current_close": round(momentum["current_close"], 2),
         "performance_2m_pct": performance,
+        "spy_relative_2m_pct": round(spy_relative, 2) if spy_relative is not None else None,
+        "qqq_relative_2m_pct": round(qqq_relative, 2) if qqq_relative is not None else None,
         "above_sma_20": momentum["above_sma_20"],
         "above_sma_50": momentum["above_sma_50"],
+        "above_sma_150": momentum["above_sma_150"],
+        "above_sma_200": momentum["above_sma_200"],
         "distance_sma_50_pct": round(momentum["distance_sma_50"], 2),
+        "stage2_score": int(momentum["stage2_score"]),
+        "stage2_status": momentum["stage2_status"],
         "score": score,
         "rating": rating,
         "status": status,
@@ -772,8 +905,14 @@ def analyze_single_symbol(symbol, min_performance_2m=15.0):
         return None
 
     try:
+        spy_df = get_historical_prices("SPY")
+        qqq_df = get_historical_prices("QQQ")
+
+        spy_perf_2m = calculate_price_performance(spy_df, 42)
+        qqq_perf_2m = calculate_price_performance(qqq_df, 42)
+
         prices = get_historical_prices(symbol)
-        momentum = calculate_momentum(prices)
+        momentum = calculate_momentum(prices, spy_perf_2m, qqq_perf_2m)
 
         if momentum is None:
             return None
@@ -797,6 +936,67 @@ def analyze_single_symbol(symbol, min_performance_2m=15.0):
         return None
 
 
+def calculate_market_regime():
+    spy_df = get_historical_prices("SPY")
+    qqq_df = get_historical_prices("QQQ")
+
+    spy_perf_2m = calculate_price_performance(spy_df, 42)
+    qqq_perf_2m = calculate_price_performance(qqq_df, 42)
+
+    def index_status(df, name):
+        if df is None or len(df) < 220:
+            return {
+                "name": name,
+                "status": "unbekannt",
+                "above_sma50": False,
+                "above_sma200": False,
+                "perf_2m": None,
+            }
+
+        close = df["close"]
+        current = float(close.iloc[-1])
+        sma50 = close.tail(50).mean()
+        sma200 = close.tail(200).mean()
+        perf_2m = calculate_price_performance(df, 42)
+
+        if current > sma50 and current > sma200:
+            status = "grün"
+        elif current > sma200:
+            status = "neutral"
+        else:
+            status = "rot"
+
+        return {
+            "name": name,
+            "status": status,
+            "above_sma50": current > sma50,
+            "above_sma200": current > sma200,
+            "perf_2m": round(perf_2m, 2) if perf_2m is not None else None,
+        }
+
+    spy_status = index_status(spy_df, "SPY")
+    qqq_status = index_status(qqq_df, "QQQ")
+
+    if spy_status["status"] == "grün" and qqq_status["status"] == "grün":
+        regime = "grün"
+        interpretation = "Marktumfeld unterstützt Momentum-Setups."
+    elif spy_status["status"] == "rot" or qqq_status["status"] == "rot":
+        regime = "rot"
+        interpretation = "Marktumfeld ist riskant. Earnings-Breakouts können schneller scheitern."
+    else:
+        regime = "neutral"
+        interpretation = "Marktumfeld ist gemischt. Positionsgröße und Risikomanagement wichtiger."
+
+    return {
+        "regime": regime,
+        "interpretation": interpretation,
+        "spy_status": spy_status,
+        "qqq_status": qqq_status,
+        "spy_perf_2m": spy_perf_2m,
+        "qqq_perf_2m": qqq_perf_2m,
+    }
+
+
 def run_screen(
     lookback_days=7,
     forward_days=14,
@@ -817,13 +1017,17 @@ def run_screen(
         skipped_no_symbol,
     ) = build_candidates_from_calendars(start_date, end_date)
 
+    market_regime = calculate_market_regime()
+    spy_perf_2m = market_regime.get("spy_perf_2m")
+    qqq_perf_2m = market_regime.get("qqq_perf_2m")
+
     all_results = []
     skipped_no_prices = 0
 
     for symbol, candidate in candidates.items():
         try:
             prices = get_historical_prices(symbol)
-            momentum = calculate_momentum(prices)
+            momentum = calculate_momentum(prices, spy_perf_2m, qqq_perf_2m)
 
             if momentum is None:
                 skipped_no_prices += 1
@@ -848,8 +1052,8 @@ def run_screen(
 
     if not all_df.empty:
         all_df = all_df.sort_values(
-            by=["performance_2m_pct", "score"],
-            ascending=[False, False],
+            by=["score", "performance_2m_pct", "stage2_score"],
+            ascending=[False, False, False],
         )
 
     filtered_df = all_df[all_df["performance_2m_pct"] >= min_performance_2m].copy()
@@ -882,6 +1086,7 @@ def run_screen(
         "best_symbol": best_symbol,
         "best_company": best_company,
         "best_performance": best_performance,
+        "market_regime": market_regime,
     }
 
     return filtered_df, all_df, stats
