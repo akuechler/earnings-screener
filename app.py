@@ -10,8 +10,8 @@ st.set_page_config(
 
 st.title("Earnings Momentum Screener")
 st.caption(
-    "Universe-basierter Earnings-Momentum-Screener aus FMP + Finnhub + TradingView "
-    "mit Relative Strength, Stage-2-Score und Marktampel."
+    "TradingView-basierter Earnings-Momentum-Screener. "
+    "TradingView ist jetzt die Hauptquelle. FMP/Finnhub ergänzen nur noch Earnings-Termine."
 )
 
 st.sidebar.header("Steuerung")
@@ -38,39 +38,15 @@ min_performance = st.sidebar.slider(
     max_value=50.0,
     value=15.0,
     step=1.0,
-    help="Standard: 15 %. Du kannst den Filter frei anpassen.",
-)
-
-use_tradingview = st.sidebar.checkbox(
-    "TradingView als Earnings-Quelle nutzen",
-    value=True,
 )
 
 tradingview_limit = st.sidebar.slider(
-    "TradingView Scan-Limit",
-    min_value=500,
-    max_value=10000,
-    value=3000,
-    step=500,
-    help="Je höher, desto mehr potenzielle Kandidaten, aber desto langsamer.",
-)
-
-max_candidates = st.sidebar.slider(
-    "Maximal zu prüfende Kandidaten",
-    min_value=50,
-    max_value=1000,
-    value=250,
-    step=50,
-    help="Schutz gegen Endlosläufe und API-Limits.",
-)
-
-max_workers = st.sidebar.slider(
-    "Parallelität",
-    min_value=4,
-    max_value=20,
-    value=12,
-    step=2,
-    help="Mehr Parallelität ist schneller, kann aber APIs stärker belasten.",
+    "TradingView Universe-Limit",
+    min_value=1000,
+    max_value=20000,
+    value=8000,
+    step=1000,
+    help="Höher = mehr Aktienuniversum. Läuft trotzdem schnell, weil keine Kursdaten einzeln nachgeladen werden.",
 )
 
 run_now = st.sidebar.button("Screener jetzt ausführen")
@@ -80,7 +56,6 @@ st.sidebar.divider()
 manual_symbol = st.sidebar.text_input(
     "Ticker manuell prüfen",
     value="DELL",
-    help="Prüft nur das Kursmomentum eines einzelnen Tickers.",
 )
 
 manual_check = st.sidebar.button("Ticker prüfen")
@@ -97,14 +72,15 @@ def rename_columns(df):
             "earnings_date": "Earnings-Datum",
             "calendar_source": "Earnings-Quelle",
             "current_close": "Aktueller Kurs",
-            "performance_2m_pct": "2M-Performance %",
-            "spy_relative_2m_pct": "Relativ zu SPY %",
-            "qqq_relative_2m_pct": "Relativ zu QQQ %",
-            "above_sma_20": "Über 20-Tage-Linie",
+            "performance_1m_pct": "1M-Performance %",
+            "performance_3m_pct": "3M-Performance %",
+            "performance_2m_proxy_pct": "2M-Performance Proxy %",
+            "spy_relative_proxy_pct": "Relativ zu SPY %",
+            "qqq_relative_proxy_pct": "Relativ zu QQQ %",
             "above_sma_50": "Über 50-Tage-Linie",
-            "above_sma_150": "Über 150-Tage-Linie",
             "above_sma_200": "Über 200-Tage-Linie",
             "distance_sma_50_pct": "Abstand 50-Tage-Linie %",
+            "distance_sma_200_pct": "Abstand 200-Tage-Linie %",
             "stage2_score": "Stage-2-Score",
             "stage2_status": "Stage-2-Status",
             "score": "Gesamtscore",
@@ -113,7 +89,7 @@ def rename_columns(df):
             "interpretation": "Interpretation",
             "action": "Aktion",
             "chart_url": "Chart öffnen",
-            "data_source": "Kursdatenquelle",
+            "data_source": "Datenquelle",
         }
     )
 
@@ -131,7 +107,9 @@ def show_table(df):
             "Börse",
             "Earnings-Datum",
             "Earnings-Quelle",
-            "2M-Performance %",
+            "2M-Performance Proxy %",
+            "1M-Performance %",
+            "3M-Performance %",
             "Relativ zu SPY %",
             "Relativ zu QQQ %",
             "Stage-2-Score",
@@ -143,16 +121,23 @@ def show_table(df):
             "Chart öffnen",
             "Interpretation",
             "Aktueller Kurs",
-            "Kursdatenquelle",
-            "Über 20-Tage-Linie",
+            "Datenquelle",
             "Über 50-Tage-Linie",
-            "Über 150-Tage-Linie",
             "Über 200-Tage-Linie",
             "Abstand 50-Tage-Linie %",
+            "Abstand 200-Tage-Linie %",
         ],
         column_config={
-            "2M-Performance %": st.column_config.NumberColumn(
-                "2M-Performance %",
+            "2M-Performance Proxy %": st.column_config.NumberColumn(
+                "2M-Performance Proxy %",
+                format="%.2f %%",
+            ),
+            "1M-Performance %": st.column_config.NumberColumn(
+                "1M-Performance %",
+                format="%.2f %%",
+            ),
+            "3M-Performance %": st.column_config.NumberColumn(
+                "3M-Performance %",
                 format="%.2f %%",
             ),
             "Relativ zu SPY %": st.column_config.NumberColumn(
@@ -166,10 +151,6 @@ def show_table(df):
             "Aktueller Kurs": st.column_config.NumberColumn(
                 "Aktueller Kurs",
                 format="%.2f",
-            ),
-            "Abstand 50-Tage-Linie %": st.column_config.NumberColumn(
-                "Abstand 50-Tage-Linie %",
-                format="%.2f %%",
             ),
             "Stage-2-Score": st.column_config.ProgressColumn(
                 "Stage-2-Score",
@@ -192,58 +173,43 @@ def show_table(df):
 def show_market_regime(stats):
     market = stats.get("market_regime", {})
 
-    if not market:
-        st.warning("Marktampel konnte nicht berechnet werden.")
-        return
-
     regime = market.get("regime", "unbekannt")
     interpretation = market.get("interpretation", "")
 
     if regime == "grün":
         st.success(f"Marktampel: GRÜN — {interpretation}")
-    elif regime == "neutral":
-        st.warning(f"Marktampel: NEUTRAL — {interpretation}")
     elif regime == "rot":
         st.error(f"Marktampel: ROT — {interpretation}")
+    elif regime == "neutral":
+        st.warning(f"Marktampel: NEUTRAL — {interpretation}")
     else:
-        st.info("Marktampel: unbekannt")
+        st.info(f"Marktampel: UNBEKANNT — {interpretation}")
 
-    spy = market.get("spy_status", {})
-    qqq = market.get("qqq_status", {})
+    col1, col2 = st.columns(2)
 
-    col1, col2, col3, col4 = st.columns(4)
+    spy_perf = market.get("spy_perf_2m")
+    qqq_perf = market.get("qqq_perf_2m")
 
-    col1.metric("SPY Status", spy.get("status", "n/a"))
-    col2.metric(
-        "SPY 2M",
-        f"{spy.get('perf_2m'):.2f} %" if spy.get("perf_2m") is not None else "n/a",
-    )
-    col3.metric("QQQ Status", qqq.get("status", "n/a"))
-    col4.metric(
-        "QQQ 2M",
-        f"{qqq.get('perf_2m'):.2f} %" if qqq.get("perf_2m") is not None else "n/a",
-    )
+    col1.metric("SPY 2M Proxy", f"{spy_perf:.2f} %" if spy_perf is not None else "n/a")
+    col2.metric("QQQ 2M Proxy", f"{qqq_perf:.2f} %" if qqq_perf is not None else "n/a")
 
 
 def show_explanation_box(min_performance):
     st.markdown(
         f"""
-### Lesart des Screeners
+### Lesart
 
-- **Treffer**: Aktie liegt bei mindestens **{min_performance:.0f} %** 2-Monats-Performance.
-- **Relativ zu SPY / QQQ**: zeigt, ob die Aktie den Gesamtmarkt oder den Tech-Index schlägt.
-- **Stage-2-Score**: technische Trendqualität nach Minervini/Weinstein-Logik.
-- **Stage 2 stark**: Kurs über wichtigen gleitenden Durchschnitten, 200-Tage-Linie steigt, Nähe zum Hoch, Abstand zum Tief.
-- **Gesamtscore**: Mischung aus Momentum, Trend, relativer Stärke und Stage-2-Qualität.
-- **Marktampel**: prüft SPY und QQQ. Bei roter Ampel sind Earnings-Breakouts riskanter.
-- **Chart öffnen** öffnet den TradingView-Chart zur visuellen Prüfung.
-- **Maximal zu prüfende Kandidaten** schützt deine App vor Endlosläufen und API-Limits.
+- **Treffer**: geschätzte 2M-Performance liegt bei mindestens **{min_performance:.0f} %**.
+- **2M-Performance Proxy**: wird aus TradingView 1M- und 3M-Performance abgeleitet.
+- **Relativ zu SPY / QQQ**: Aktie läuft stärker oder schwächer als Markt/Tech.
+- **Stage-2-Score**: Trendqualität über Kurs, SMA50, SMA200 und Performance.
+- **Wichtig**: Diese Version ist schnell, weil sie TradingView-Daten direkt nutzt und nicht hunderte Einzelkursdaten lädt.
 """
     )
 
 
 if manual_check:
-    st.subheader(f"Manuelle Momentum-Prüfung: {manual_symbol.upper()}")
+    st.subheader(f"Manuelle Prüfung: {manual_symbol.upper()}")
 
     with st.spinner("Ticker wird geprüft..."):
         manual_df = analyze_single_symbol(
@@ -252,16 +218,17 @@ if manual_check:
         )
 
     if manual_df is None or manual_df.empty:
-        st.error("Für diesen Ticker konnten keine ausreichenden Kursdaten geladen werden.")
+        st.error("Ticker konnte nicht geprüft werden.")
     else:
         row = manual_df.iloc[0]
 
         col1, col2, col3, col4, col5 = st.columns(5)
+
         col1.metric("Unternehmen", row["company"])
         col2.metric("Ticker", row["symbol"])
         col3.metric("WKN", row["wkn"])
-        col4.metric("2M-Performance", f"{row['performance_2m_pct']:.2f} %")
-        col5.metric("Stage-2-Score", int(row["stage2_score"]))
+        col4.metric("2M Proxy", f"{row['performance_2m_proxy_pct']:.2f} %")
+        col5.metric("Status", row["status"])
 
         if row["status"] == "Treffer":
             st.success(row["interpretation"])
@@ -276,78 +243,44 @@ if manual_check:
 
 
 if not run_now:
-    st.info(
-        "Klicke links auf **Screener jetzt ausführen**, um alle Earnings-Kandidaten "
-        "aus FMP + Finnhub + TradingView zu laden."
-    )
+    st.info("Klicke links auf **Screener jetzt ausführen**.")
     show_explanation_box(min_performance)
     st.stop()
 
 
-progress_bar = st.progress(0)
-progress_text = st.empty()
-
-
-def update_progress(done, total):
-    if total <= 0:
-        progress_bar.progress(0)
-        progress_text.info("Keine Kandidaten gefunden.")
-        return
-
-    progress = min(done / total, 1.0)
-    progress_bar.progress(progress)
-    progress_text.info(f"Prüfe Kandidaten: {done}/{total}")
-
-
-with st.spinner(
-    "Screener läuft. Earnings-Kalender, Kursdaten, Relative Strength, Stage-2-Score und Marktampel werden geladen..."
-):
+with st.spinner("Screener läuft. TradingView-Daten werden geladen und gefiltert..."):
     hits_df, all_df, stats = run_screen(
         lookback_days=lookback_days,
         forward_days=forward_days,
         min_performance_2m=min_performance,
-        use_tradingview=use_tradingview,
         tradingview_limit=tradingview_limit,
-        max_candidates=max_candidates,
-        max_workers=max_workers,
-        progress_callback=update_progress,
     )
-
-progress_bar.empty()
-progress_text.empty()
 
 
 st.subheader("Marktumfeld")
-
 show_market_regime(stats)
 
 st.divider()
 
-
 st.subheader("Kurzfazit")
 
 if stats["tradingview_error"]:
-    st.warning(f"TradingView-Quelle konnte nicht geladen werden: {stats['tradingview_error']}")
+    st.warning(f"TradingView-Quelle: {stats['tradingview_error']}")
 
 if stats["hits"] > 0:
     st.success(
         f"{stats['hits']} Aktie(n) erfüllen den Momentum-Filter von mindestens "
-        f"{stats['min_performance_2m']:.0f} %. "
-        "Das sind Kandidaten für eine Detailanalyse."
+        f"{stats['min_performance_2m']:.0f} %."
     )
 else:
     if stats["best_symbol"] is not None:
         st.warning(
             f"Kein Treffer über {stats['min_performance_2m']:.0f} %. "
-            f"Bester Kandidat ist {stats['best_company']} ({stats['best_symbol']}) "
-            f"mit {stats['best_performance']:.2f} %. "
-            "Das ist aktuell kein starkes Earnings-Momentum-Setup."
+            f"Bester geprüfter Kandidat: {stats['best_company']} ({stats['best_symbol']}) "
+            f"mit {stats['best_performance']:.2f} %."
         )
     else:
-        st.error(
-            "Es wurden keine verwertbaren Kandidaten gefunden. "
-            "Entweder liefern die Kalender keine Daten oder es fehlen Kursdaten."
-        )
+        st.error("Keine verwertbaren Kandidaten gefunden.")
 
 
 col1, col2, col3, col4, col5, col6 = st.columns(6)
@@ -356,7 +289,7 @@ col1.metric("FMP Earnings", stats["fmp_earnings_found"])
 col2.metric("Finnhub Earnings", stats["finnhub_earnings_found"])
 col3.metric("TradingView Earnings", stats["tradingview_earnings_found"])
 col4.metric("Kandidaten gesamt", stats["candidates_total"])
-col5.metric("Geprüft", stats["candidates_scanned"])
+col5.metric("Mit Performance-Daten", stats["stocks_with_price_data"])
 col6.metric("Treffer", stats["hits"])
 
 st.metric("Momentum-Filter", f">{stats['min_performance_2m']:.0f} %")
@@ -369,15 +302,13 @@ if stats["best_symbol"] is not None:
     )
 
 st.caption(
-    f"Zeitraum: {stats['start_date']} bis {stats['end_date']} · "
-    f"Ohne Kursdaten/zu wenig Historie: {stats['skipped_no_prices']}"
+    f"Zeitraum: {stats['start_date']} bis {stats['end_date']}"
 )
 
 st.divider()
 
-
 if all_df.empty:
-    st.warning("Es wurden keine Aktien mit ausreichenden Kursdaten geprüft.")
+    st.warning("Keine Kandidaten mit verwertbaren TradingView-Performance-Daten.")
     show_explanation_box(min_performance)
     st.stop()
 
@@ -389,7 +320,7 @@ display_hits = rename_columns(hits_df)
 st.subheader("Treffer: Aktien über Momentum-Filter")
 
 if display_hits.empty:
-    st.warning("Keine Aktie erfüllt aktuell deinen Momentum-Filter. Kein A-Setup vorhanden.")
+    st.warning("Keine Aktie erfüllt aktuell deinen Momentum-Filter.")
 else:
     show_table(display_hits)
 
@@ -427,23 +358,26 @@ show_table(filtered_all)
 
 st.subheader("Top 15 nach Gesamtscore")
 
-top15 = filtered_all.sort_values("Gesamtscore", ascending=False).head(15)
+top15_score = filtered_all.sort_values("Gesamtscore", ascending=False).head(15)
 
 st.bar_chart(
-    top15,
+    top15_score,
     x="Ticker",
     y="Gesamtscore",
 )
 
 
-st.subheader("Top 15 nach 2M-Performance")
+st.subheader("Top 15 nach 2M-Performance Proxy")
 
-top15_momentum = filtered_all.sort_values("2M-Performance %", ascending=False).head(15)
+top15_momentum = filtered_all.sort_values(
+    "2M-Performance Proxy %",
+    ascending=False,
+).head(15)
 
 st.bar_chart(
     top15_momentum,
     x="Ticker",
-    y="2M-Performance %",
+    y="2M-Performance Proxy %",
 )
 
 
@@ -452,6 +386,6 @@ st.divider()
 show_explanation_box(min_performance)
 
 st.caption(
-    "Keine Anlageberatung. Der Screener zeigt Kandidaten mit Kursmomentum rund um Quartalszahlen. "
-    "Bei stark gelaufenen Aktien sind hohe Erwartungen oft bereits eingepreist."
+    "Keine Anlageberatung. TradingView-Daten dienen als Screening-Grundlage. "
+    "Treffer müssen manuell im Chart und fundamental geprüft werden."
 )
