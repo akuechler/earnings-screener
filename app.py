@@ -60,6 +60,7 @@ def rename_columns(df):
             "company": "Unternehmen",
             "wkn": "WKN",
             "isin": "ISIN",
+            "exchange": "Börse",
             "earnings_date": "Earnings-Datum",
             "current_close": "Aktueller Kurs",
             "performance_2m_pct": "2M-Performance %",
@@ -86,6 +87,7 @@ def show_table(df):
             "Ticker",
             "WKN",
             "ISIN",
+            "Börse",
             "Earnings-Datum",
             "2M-Performance %",
             "Aktueller Kurs",
@@ -108,6 +110,10 @@ def show_table(df):
                 "Aktueller Kurs",
                 format="%.2f",
             ),
+            "Abstand 50-Tage-Linie %": st.column_config.NumberColumn(
+                "Abstand 50-Tage-Linie %",
+                format="%.2f %%",
+            ),
             "Score": st.column_config.ProgressColumn(
                 "Score",
                 min_value=0,
@@ -115,9 +121,24 @@ def show_table(df):
             ),
             "Chart öffnen": st.column_config.LinkColumn(
                 "Chart öffnen",
-                display_text="TradingView",
+                display_text="TradingView öffnen",
             ),
         },
+    )
+
+
+def show_explanation_box(min_performance):
+    st.markdown(
+        f"""
+### Lesart des Screeners
+
+- **Treffer**: Aktie liegt bei mindestens **{min_performance:.0f} %** 2-Monats-Performance.
+- **Knapp darunter**: Aktie liegt maximal 5 Prozentpunkte unter deinem Filter.
+- **Unter Filter**: Aktie berichtet Zahlen, aber der Kurs zeigt keine ausreichende Vorstärke.
+- **Schwach**: negatives Momentum, für diesen Ansatz uninteressant.
+- **Chart öffnen**: öffnet den TradingView-Chart zur visuellen Prüfung.
+- **WKN**: wird angezeigt, wenn sie in der lokalen Mapping-Liste hinterlegt ist.
+"""
     )
 
 
@@ -142,7 +163,12 @@ if manual_check:
         col4.metric("2M-Performance", f"{row['performance_2m_pct']:.2f} %")
         col5.metric("Status", row["status"])
 
-        st.info(row["interpretation"])
+        if row["status"] == "Treffer":
+            st.success(row["interpretation"])
+        elif row["status"] == "Knapp darunter":
+            st.warning(row["interpretation"])
+        else:
+            st.info(row["interpretation"])
 
         show_table(rename_columns(manual_df))
 
@@ -150,6 +176,7 @@ if manual_check:
 
 if not run_now:
     st.info("Klicke links auf **Screener jetzt ausführen**, um aktuelle Earnings-Kandidaten zu laden.")
+    show_explanation_box(min_performance)
     st.stop()
 
 with st.spinner("Screener läuft. Earnings-Kalender und Kursdaten werden geladen..."):
@@ -164,13 +191,14 @@ st.subheader("Kurzfazit")
 if stats["hits"] > 0:
     st.success(
         f"{stats['hits']} Aktie(n) erfüllen den Momentum-Filter von mindestens {stats['min_performance_2m']:.0f} %. "
-        "Das sind die Kandidaten für eine Detailanalyse."
+        "Das sind Kandidaten für eine Detailanalyse."
     )
 else:
     if stats["best_symbol"] is not None:
         st.warning(
             f"Kein Treffer über {stats['min_performance_2m']:.0f} %. "
-            f"Bester Kandidat ist {stats['best_symbol']} mit {stats['best_performance']:.2f} %. "
+            f"Bester Kandidat ist {stats['best_company']} ({stats['best_symbol']}) "
+            f"mit {stats['best_performance']:.2f} %. "
             "Das ist aktuell kein starkes Earnings-Momentum-Setup."
         )
     else:
@@ -241,21 +269,7 @@ st.bar_chart(
 
 st.divider()
 
-st.subheader("Wie du das Ergebnis lesen musst")
-
-st.markdown(
-    """
-**Treffer** bedeutet: Die Aktie hat vor oder rund um die Quartalszahlen mindestens deinen eingestellten Momentum-Wert erreicht.
-
-**Knapp darunter** bedeutet: Die Aktie ist nahe am Filter, aber noch kein starkes Setup.
-
-**Unter Filter** bedeutet: Die Aktie berichtet zwar Zahlen, aber der Kurs zeigt nicht genug Vorstärke.
-
-**Chart öffnen** führt direkt zu TradingView. Dort kannst du den Kursverlauf visuell prüfen.
-
-**WKN** wird nur angezeigt, wenn sie in der lokalen Mapping-Liste hinterlegt ist. FMP liefert WKN nicht zuverlässig automatisch.
-"""
-)
+show_explanation_box(min_performance)
 
 st.caption(
     "Keine Anlageberatung. Der Screener zeigt Kandidaten mit Kursmomentum rund um Quartalszahlen. "
