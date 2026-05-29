@@ -5,7 +5,7 @@ from screener import analyze_single_symbol, run_screen
 
 
 st.set_page_config(
-    page_title="Earnings Momentum Screener von Andreas",
+    page_title="Earnings Momentum Screener",
     layout="wide",
 )
 
@@ -137,8 +137,8 @@ def prepare_display_df(df):
     display["3M"] = display["performance_3m_pct"].apply(format_percent)
     display["Rel. SPY"] = display["spy_relative_proxy_pct"].apply(format_percent)
     display["Rel. QQQ"] = display["qqq_relative_proxy_pct"].apply(format_percent)
-    display["Abstand 50 Tage Linie"] = display["distance_sma_50_pct"].apply(format_percent)
-    display["Abstand 200 Tage Linie"] = display["distance_sma_200_pct"].apply(format_percent)
+    display["Abstand 50T"] = display["distance_sma_50_pct"].apply(format_percent)
+    display["Abstand 200T"] = display["distance_sma_200_pct"].apply(format_percent)
     display["Statusanzeige"] = display["status"].apply(status_badge)
     display["Ratinganzeige"] = display["rating"].apply(rating_badge)
 
