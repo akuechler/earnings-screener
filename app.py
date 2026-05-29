@@ -28,14 +28,6 @@ st.markdown(
             opacity: 1 !important;
         }
 
-        [data-testid="stSidebar"] label,
-        [data-testid="stSidebar"] p,
-        [data-testid="stSidebar"] span,
-        [data-testid="stSidebar"] div {
-            color: #F8FAFC !important;
-            opacity: 1 !important;
-        }
-
         [data-testid="stSidebar"] input {
             background: #0F1726 !important;
             color: #FFFFFF !important;
@@ -136,28 +128,14 @@ st.markdown(
             font-weight: 650;
         }
 
-        .summary-grid {
-            display: grid;
-            grid-template-columns: repeat(6, minmax(0, 1fr));
-            gap: 12px;
-            margin-top: 16px;
-            margin-bottom: 14px;
-        }
-
-        .summary-grid-3 {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 12px;
-            margin-bottom: 14px;
-        }
-
         .summary-metric {
             background: #1B263A;
             border: 1px solid rgba(255,255,255,0.24);
             border-radius: 16px;
             padding: 13px 14px;
-            min-height: 76px;
+            min-height: 78px;
             box-shadow: 0 6px 16px rgba(0,0,0,0.20);
+            margin-bottom: 12px;
         }
 
         .summary-metric-label {
@@ -421,16 +399,6 @@ st.markdown(
 
         hr {
             border-color: rgba(255,255,255,0.12);
-        }
-
-        @media (max-width: 1200px) {
-            .summary-grid {
-                grid-template-columns: repeat(3, minmax(0, 1fr));
-            }
-
-            .summary-grid-3 {
-                grid-template-columns: repeat(1, minmax(0, 1fr));
-            }
         }
     </style>
     """,
@@ -756,13 +724,28 @@ def summary_metric(label, value, delta=None):
     if delta is not None:
         delta_html = f'<div class="summary-metric-delta">{delta}</div>'
 
-    return f"""
-    <div class="summary-metric">
-        <div class="summary-metric-label">{label}</div>
-        <div class="summary-metric-value">{value}</div>
-        {delta_html}
-    </div>
-    """
+    st.markdown(
+        f"""
+        <div class="summary-metric">
+            <div class="summary-metric-label">{label}</div>
+            <div class="summary-metric-value">{value}</div>
+            {delta_html}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def valid_value(value):
+    if value is None:
+        return False
+
+    if pd.isna(value):
+        return False
+
+    text = str(value).strip().lower()
+
+    return text not in ["", "n/a", "nan", "none", "null"]
 
 
 def show_screening_summary(stats):
@@ -793,30 +776,42 @@ def show_screening_summary(stats):
         unsafe_allow_html=True,
     )
 
-    st.markdown(
-        f"""
-        <div class="summary-grid">
-            {summary_metric("FMP Earnings", stats.get("fmp_earnings_found", 0))}
-            {summary_metric("Finnhub Earnings", stats.get("finnhub_earnings_found", 0))}
-            {summary_metric("TradingView Earnings", stats.get("tradingview_earnings_found", 0))}
-            {summary_metric("Kandidaten gesamt", stats.get("candidates_total", 0))}
-            {summary_metric("Mit Performance-Daten", stats.get("stocks_with_price_data", 0))}
-            {summary_metric("Treffer", hits)}
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    row1_items = [
+        ("FMP Earnings", stats.get("fmp_earnings_found", 0)),
+        ("Finnhub Earnings", stats.get("finnhub_earnings_found", 0)),
+        ("TradingView Earnings", stats.get("tradingview_earnings_found", 0)),
+        ("Kandidaten gesamt", stats.get("candidates_total", 0)),
+        ("Mit Performance-Daten", stats.get("stocks_with_price_data", 0)),
+        ("Treffer", hits),
+    ]
 
-    st.markdown(
-        f"""
-        <div class="summary-grid-3">
-            {summary_metric("SPY 2M", format_percent(stats.get("spy_perf_2m")))}
-            {summary_metric("QQQ 2M", format_percent(stats.get("qqq_perf_2m")))}
-            {summary_metric("Setup-Filter", stats.get("setup_filter", "Alle"))}
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    cols = st.columns(len(row1_items))
+
+    for col, item in zip(cols, row1_items):
+        with col:
+            summary_metric(item[0], item[1])
+
+    optional_items = []
+
+    spy_value = stats.get("spy_perf_2m")
+    qqq_value = stats.get("qqq_perf_2m")
+    setup_value = stats.get("setup_filter", "Alle")
+
+    if valid_value(spy_value):
+        optional_items.append(("SPY 2M", format_percent(spy_value)))
+
+    if valid_value(qqq_value):
+        optional_items.append(("QQQ 2M", format_percent(qqq_value)))
+
+    if valid_value(setup_value):
+        optional_items.append(("Setup-Filter", setup_value))
+
+    if optional_items:
+        cols = st.columns(len(optional_items))
+
+        for col, item in zip(cols, optional_items):
+            with col:
+                summary_metric(item[0], item[1])
 
     if stats.get("best_symbol") is not None:
         st.markdown(
