@@ -372,7 +372,7 @@ st.markdown(
 st.markdown(
     """
     <div class="main-header">
-        <div class="main-title">Earnings Momentum Screener</div>
+        <div class="main-title">Earnings Momentum Screener von Andreras</div>
         <div class="main-subtitle">
             Analysten-Dashboard · Qualitätsfilter · Pre-/Post-Earnings · Momentum · 50-/200-Tage-Linie · Chartvorschau
         </div>
