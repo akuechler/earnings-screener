@@ -5,7 +5,7 @@ from screener import analyze_single_symbol, run_screen
 
 
 st.set_page_config(
-    page_title="Earnings Momentum Screener",
+    page_title="Earnings Momentum Screener von Andreas",
     layout="wide",
 )
 
@@ -37,7 +37,7 @@ st.markdown(
             padding-top: 1.7rem;
             padding-left: 2.1rem;
             padding-right: 2.1rem;
-            max-width: 1580px;
+            max-width: 1600px;
         }
 
         h1, h2, h3, h4 {
@@ -73,7 +73,7 @@ st.markdown(
 
         .summary-card {
             background: #1B263A;
-            border: 1px solid rgba(255,255,255,0.16);
+            border: 1px solid rgba(255,255,255,0.20);
             border-radius: 20px;
             padding: 18px 20px;
             margin-bottom: 18px;
@@ -95,7 +95,7 @@ st.markdown(
 
         .stock-card {
             background: #162032;
-            border: 1px solid rgba(255,255,255,0.16);
+            border: 1px solid rgba(255,255,255,0.18);
             border-radius: 22px;
             padding: 18px;
             margin-bottom: 18px;
@@ -103,12 +103,17 @@ st.markdown(
         }
 
         .stock-card-hit {
-            border-color: rgba(34,197,94,0.75);
-            box-shadow: 0 0 0 1px rgba(34,197,94,0.22), 0 12px 28px rgba(0,0,0,0.30);
+            border-color: rgba(34,197,94,0.78);
+            box-shadow: 0 0 0 1px rgba(34,197,94,0.24), 0 12px 28px rgba(0,0,0,0.30);
         }
 
         .stock-card-watch {
-            border-color: rgba(245,158,11,0.58);
+            border-color: rgba(245,158,11,0.60);
+        }
+
+        .stock-card-ignore {
+            border-color: rgba(239,68,68,0.55);
+            opacity: 0.88;
         }
 
         .stock-title {
@@ -126,7 +131,7 @@ st.markdown(
 
         .metric-box {
             background: #101827;
-            border: 1px solid rgba(255,255,255,0.18);
+            border: 1px solid rgba(255,255,255,0.22);
             border-radius: 15px;
             padding: 10px 11px;
             min-height: 72px;
@@ -134,10 +139,11 @@ st.markdown(
 
         .metric-label {
             font-size: 11px;
-            color: #D7E1F0;
+            color: #F8FAFC;
             margin-bottom: 5px;
             white-space: nowrap;
-            font-weight: 700;
+            font-weight: 800;
+            opacity: 1;
         }
 
         .metric-value {
@@ -146,6 +152,7 @@ st.markdown(
             font-weight: 850;
             color: #FFFFFF;
             white-space: nowrap;
+            opacity: 1;
         }
 
         .metric-value-small {
@@ -154,6 +161,7 @@ st.markdown(
             font-weight: 850;
             color: #FFFFFF;
             white-space: nowrap;
+            opacity: 1;
         }
 
         .positive {
@@ -187,32 +195,32 @@ st.markdown(
             padding: 5px 10px;
             font-size: 12px;
             font-weight: 800;
-            border: 1px solid rgba(255,255,255,0.18);
+            border: 1px solid rgba(255,255,255,0.20);
             background: #101827;
             color: #F8FAFC;
         }
 
         .badge-green {
-            background: rgba(34,197,94,0.18);
-            border-color: rgba(34,197,94,0.55);
+            background: rgba(34,197,94,0.20);
+            border-color: rgba(34,197,94,0.58);
             color: #BBF7D0;
         }
 
         .badge-yellow {
-            background: rgba(245,158,11,0.18);
-            border-color: rgba(245,158,11,0.55);
+            background: rgba(245,158,11,0.20);
+            border-color: rgba(245,158,11,0.58);
             color: #FDE68A;
         }
 
         .badge-red {
-            background: rgba(239,68,68,0.18);
-            border-color: rgba(239,68,68,0.55);
+            background: rgba(239,68,68,0.20);
+            border-color: rgba(239,68,68,0.58);
             color: #FECACA;
         }
 
         .badge-blue {
-            background: rgba(59,130,246,0.18);
-            border-color: rgba(59,130,246,0.55);
+            background: rgba(59,130,246,0.20);
+            border-color: rgba(59,130,246,0.58);
             color: #BFDBFE;
         }
 
@@ -225,7 +233,7 @@ st.markdown(
 
         .chart-wrap {
             background: #FFFFFF;
-            border: 1px solid rgba(255,255,255,0.16);
+            border: 1px solid rgba(255,255,255,0.18);
             border-radius: 16px;
             overflow: hidden;
             padding: 8px;
@@ -249,7 +257,7 @@ st.markdown(
 
         .sort-panel {
             background: #1B263A;
-            border: 1px solid rgba(255,255,255,0.16);
+            border: 1px solid rgba(255,255,255,0.20);
             border-radius: 20px;
             padding: 16px 18px;
             margin-top: 18px;
@@ -276,9 +284,9 @@ st.markdown(
             padding: 6px 12px;
             font-size: 12px;
             font-weight: 850;
-            background: rgba(37,99,235,0.22);
-            border: 1px solid rgba(37,99,235,0.55);
-            color: #BFDBFE;
+            background: rgba(37,99,235,0.26);
+            border: 1px solid rgba(37,99,235,0.62);
+            color: #DBEAFE;
             margin-top: 10px;
         }
 
@@ -286,7 +294,7 @@ st.markdown(
         .stLinkButton > a {
             background: #2563EB !important;
             color: white !important;
-            border: 1px solid rgba(255,255,255,0.18) !important;
+            border: 1px solid rgba(255,255,255,0.20) !important;
             border-radius: 12px !important;
             font-weight: 850 !important;
             box-shadow: 0 6px 16px rgba(37,99,235,0.22);
@@ -296,28 +304,45 @@ st.markdown(
         .stLinkButton > a:hover {
             background: #1D4ED8 !important;
             color: white !important;
-            border-color: rgba(255,255,255,0.28) !important;
+            border-color: rgba(255,255,255,0.32) !important;
         }
 
         div[data-testid="stMetric"] {
-            background: #1B263A;
-            border: 1px solid rgba(255,255,255,0.16);
-            border-radius: 16px;
-            padding: 13px 14px;
-            box-shadow: 0 6px 16px rgba(0,0,0,0.20);
+            background: #1B263A !important;
+            border: 1px solid rgba(255,255,255,0.22) !important;
+            border-radius: 16px !important;
+            padding: 13px 14px !important;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.20) !important;
         }
 
-        div[data-testid="stMetricLabel"] {
-            color: #DDE7F5 !important;
-            font-weight: 750 !important;
+        div[data-testid="stMetric"] * {
+            opacity: 1 !important;
         }
 
-        div[data-testid="stMetricValue"] {
+        div[data-testid="stMetricLabel"],
+        div[data-testid="stMetricLabel"] *,
+        div[data-testid="stMetricLabel"] label,
+        div[data-testid="stMetricLabel"] p,
+        div[data-testid="stMetricLabel"] div {
+            color: #F8FAFC !important;
+            opacity: 1 !important;
+            font-weight: 800 !important;
+        }
+
+        div[data-testid="stMetricValue"],
+        div[data-testid="stMetricValue"] *,
+        div[data-testid="stMetricValue"] div {
             color: #FFFFFF !important;
+            opacity: 1 !important;
+            font-weight: 850 !important;
         }
 
-        div[data-testid="stMetricDelta"] {
+        div[data-testid="stMetricDelta"],
+        div[data-testid="stMetricDelta"] *,
+        div[data-testid="stMetricDelta"] div {
             color: #22C55E !important;
+            opacity: 1 !important;
+            font-weight: 800 !important;
         }
 
         .stAlert {
@@ -336,7 +361,7 @@ st.markdown(
         }
 
         hr {
-            border-color: rgba(255,255,255,0.11);
+            border-color: rgba(255,255,255,0.12);
         }
     </style>
     """,
@@ -349,7 +374,7 @@ st.markdown(
     <div class="main-header">
         <div class="main-title">Earnings Momentum Screener</div>
         <div class="main-subtitle">
-            Analysten-Dashboard · Earnings-Kandidaten · Momentum · 50-/200-Tage-Linie · kompakte Chartvorschau
+            Analysten-Dashboard · Qualitätsfilter · Pre-/Post-Earnings · Momentum · 50-/200-Tage-Linie · Chartvorschau
         </div>
     </div>
     """,
@@ -403,15 +428,72 @@ tradingview_limit = st.sidebar.slider(
     "TradingView Universe-Limit",
     min_value=1000,
     max_value=20000,
-    value=8000,
+    value=10000,
     step=1000,
-    help="Höher = mehr Aktienuniversum. TradingView liefert Performance-Daten direkt.",
 )
+
+setup_filter = st.sidebar.selectbox(
+    "Earnings-Setup",
+    options=["Alle", "Nur Pre-Earnings", "Nur Post-Earnings"],
+    index=0,
+)
+
+st.sidebar.divider()
+st.sidebar.header("Qualitätsfilter")
+
+apply_quality_filter = st.sidebar.checkbox(
+    "Qualitätsfilter aktiv",
+    value=True,
+)
+
+allowed_exchanges = st.sidebar.multiselect(
+    "Erlaubte Börsen",
+    options=["NASDAQ", "NYSE", "AMEX", "OTC"],
+    default=["NASDAQ", "NYSE", "AMEX"],
+)
+
+exclude_otc = st.sidebar.checkbox(
+    "OTC ausschließen",
+    value=True,
+)
+
+min_price = st.sidebar.slider(
+    "Mindestkurs USD",
+    min_value=0.0,
+    max_value=100.0,
+    value=10.0,
+    step=1.0,
+)
+
+min_market_cap_m = st.sidebar.slider(
+    "Mindest-Marktkapitalisierung Mio. USD",
+    min_value=0.0,
+    max_value=10000.0,
+    value=500.0,
+    step=100.0,
+)
+
+min_volume = st.sidebar.slider(
+    "Mindestvolumen Aktien/Tag",
+    min_value=0,
+    max_value=5_000_000,
+    value=500_000,
+    step=100_000,
+)
+
+min_dollar_volume_m = st.sidebar.slider(
+    "Mindest-Dollar-Volumen Mio. USD",
+    min_value=0.0,
+    max_value=500.0,
+    value=20.0,
+    step=5.0,
+)
+
+st.sidebar.divider()
 
 show_chart_previews = st.sidebar.checkbox(
     "Chart-Vorschau anzeigen",
     value=True,
-    help="Zeigt pro Aktie eine kompakte Chart-Bildvorschau direkt in der Karte.",
 )
 
 max_cards = st.sidebar.slider(
@@ -420,7 +502,6 @@ max_cards = st.sidebar.slider(
     max_value=50,
     value=20,
     step=5,
-    help="Mehr Karten bedeuten mehr Chart-Vorschauen und längere Ladezeit.",
 )
 
 run_now = st.sidebar.button("Screener jetzt ausführen")
@@ -451,6 +532,26 @@ def format_currency(value):
 
     try:
         return f"{float(value):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    except Exception:
+        return "n/a"
+
+
+def format_number(value):
+    if value is None or pd.isna(value):
+        return "n/a"
+
+    try:
+        return f"{float(value):,.0f}".replace(",", ".")
+    except Exception:
+        return "n/a"
+
+
+def format_million(value):
+    if value is None or pd.isna(value):
+        return "n/a"
+
+    try:
+        return f"{float(value):,.1f} Mio.".replace(",", "X").replace(".", ",").replace("X", ".")
     except Exception:
         return "n/a"
 
@@ -489,17 +590,14 @@ def numeric_class(value):
 
 
 def status_badge_class(status):
-    if status == "Treffer":
+    if status in ["A-Setup", "Post-Earnings Winner"]:
         return "badge-green"
 
-    if status == "Knapp darunter":
+    if status in ["B-Setup", "Treffer", "Watchlist"]:
         return "badge-yellow"
 
-    if status == "Schwach":
+    if status in ["Ignore", "Schwach"]:
         return "badge-red"
-
-    if status == "Keine Daten":
-        return ""
 
     return "badge-blue"
 
@@ -514,6 +612,9 @@ def rating_badge(rating):
     if rating == "C":
         return "C-Setup"
 
+    if rating == "Ignore":
+        return "Ignore"
+
     return "Watch"
 
 
@@ -525,8 +626,12 @@ def prepare_display_df(df):
 
     display["Datum"] = display["earnings_date"].apply(format_date_de)
     display["Kurs"] = display["current_close"].apply(format_currency)
+    display["Marktkapitalisierung"] = display["market_cap_m"].apply(format_million)
+    display["Volumen"] = display["volume"].apply(format_number)
+    display["Dollar-Volumen"] = display["dollar_volume_m"].apply(format_million)
     display["1M"] = display["performance_1m_pct"].apply(format_percent)
     display["3M"] = display["performance_3m_pct"].apply(format_percent)
+    display["6M"] = display["performance_6m_pct"].apply(format_percent)
     display["2M Proxy"] = display["performance_2m_proxy_pct"].apply(format_percent)
     display["Relativ zu SPY"] = display["spy_relative_proxy_pct"].apply(format_percent)
     display["Relativ zu QQQ"] = display["qqq_relative_proxy_pct"].apply(format_percent)
@@ -595,7 +700,9 @@ def show_screening_summary(stats):
             <div class="summary-title">Screening-Übersicht</div>
             <div class="summary-text">
                 Zeitraum: <b>{start_date}</b> bis <b>{end_date}</b><br>
-                Ergebnis: <span class="{result_color}"><b>{result_text}</b></span>
+                Ergebnis: <span class="{result_color}"><b>{result_text}</b></span><br>
+                Qualitätsfilter: Kurs ≥ {stats.get("min_price")} USD · Market Cap ≥ {stats.get("min_market_cap_m")} Mio. USD ·
+                Volumen ≥ {format_number(stats.get("min_volume"))} · Dollar-Volumen ≥ {stats.get("min_dollar_volume_m")} Mio. USD
             </div>
         </div>
         """,
@@ -610,6 +717,12 @@ def show_screening_summary(stats):
     col4.metric("Kandidaten gesamt", stats.get("candidates_total", 0))
     col5.metric("Mit Performance-Daten", stats.get("stocks_with_price_data", 0))
     col6.metric("Treffer", hits)
+
+    col7, col8, col9 = st.columns(3)
+
+    col7.metric("SPY 2M", format_percent(stats.get("spy_perf_2m")))
+    col8.metric("QQQ 2M", format_percent(stats.get("qqq_perf_2m")))
+    col9.metric("Setup-Filter", stats.get("setup_filter", "Alle"))
 
     if stats.get("best_symbol") is not None:
         st.metric(
@@ -633,6 +746,12 @@ def sort_dataframe(df, sort_key):
 
     if sort_key == "stage2":
         return sorted_df.sort_values("stage2_score", ascending=False)
+
+    if sort_key == "market_cap":
+        return sorted_df.sort_values("market_cap_m", ascending=False)
+
+    if sort_key == "dollar_volume":
+        return sorted_df.sort_values("dollar_volume_m", ascending=False)
 
     if sort_key == "earnings_date_asc":
         sorted_df["_sort_date"] = pd.to_datetime(sorted_df["earnings_date"], errors="coerce")
@@ -660,7 +779,7 @@ def show_sort_buttons():
         <div class="sort-panel">
             <div class="sort-title">Sortierung</div>
             <div class="sort-hint">
-                Diese Sortierung wirkt auf die Treffer und auf alle Kandidaten. Die Ergebnisse bleiben beim Sortieren gespeichert.
+                Diese Sortierung wirkt auf Treffer und alle Kandidaten. Die Ergebnisse bleiben beim Sortieren gespeichert.
             </div>
         </div>
         """,
@@ -696,10 +815,20 @@ def show_sort_buttons():
             st.session_state.sort_key = "earnings_date_desc"
 
     with b7:
+        if st.button("Market Cap ↓", use_container_width=True, key="sort_market_cap_top"):
+            st.session_state.sort_key = "market_cap"
+
+    with b8:
+        if st.button("Dollar-Volumen ↓", use_container_width=True, key="sort_dollar_volume_top"):
+            st.session_state.sort_key = "dollar_volume"
+
+    b9, b10 = st.columns(2)
+
+    with b9:
         if st.button("Abstand 50-Tage ↓", use_container_width=True, key="sort_distance50_top"):
             st.session_state.sort_key = "distance_50"
 
-    with b8:
+    with b10:
         if st.button("Abstand 200-Tage ↓", use_container_width=True, key="sort_distance200_top"):
             st.session_state.sort_key = "distance_200"
 
@@ -712,6 +841,8 @@ def show_sort_buttons():
         "earnings_date_desc": "Earnings spät → früh",
         "distance_50": "Abstand zur 50-Tage-Linie absteigend",
         "distance_200": "Abstand zur 200-Tage-Linie absteigend",
+        "market_cap": "Marktkapitalisierung absteigend",
+        "dollar_volume": "Dollar-Volumen absteigend",
     }
 
     st.markdown(
@@ -746,8 +877,17 @@ def show_candidate_cards(df, title, empty_message, limit=20, show_charts=True):
         status = row.get("status", "")
         rating = row.get("rating", "Watch")
         stage2_status = row.get("stage2_status", "n/a")
+        setup_type = row.get("setup_type", "n/a")
+        quality_reason = row.get("quality_reason", "n/a")
 
-        card_class = "stock-card-hit" if status == "Treffer" else "stock-card-watch" if status == "Knapp darunter" else ""
+        if status in ["A-Setup", "Post-Earnings Winner"]:
+            card_class = "stock-card-hit"
+        elif status in ["B-Setup", "Treffer", "Watchlist"]:
+            card_class = "stock-card-watch"
+        elif status == "Ignore":
+            card_class = "stock-card-ignore"
+        else:
+            card_class = ""
 
         with st.container():
             st.markdown(
@@ -755,7 +895,8 @@ def show_candidate_cards(df, title, empty_message, limit=20, show_charts=True):
                 <div class="stock-card {card_class}">
                     <div class="stock-title">{company} ({ticker})</div>
                     <div class="stock-meta">
-                        WKN: {wkn} · Börse: {exchange} · Earnings-Datum: {row['Datum']} · Earnings-Quelle: {source}
+                        WKN: {wkn} · Börse: {exchange} · Setup: {setup_type} ·
+                        Earnings-Datum: {row['Datum']} · Earnings-Quelle: {source}
                     </div>
                 """,
                 unsafe_allow_html=True,
@@ -828,19 +969,42 @@ def show_candidate_cards(df, title, empty_message, limit=20, show_charts=True):
                         unsafe_allow_html=True,
                     )
 
+                c9, c10, c11 = st.columns(3)
+
+                with c9:
+                    st.markdown(
+                        metric_box_small("Market Cap", row["Marktkapitalisierung"]),
+                        unsafe_allow_html=True,
+                    )
+
+                with c10:
+                    st.markdown(
+                        metric_box_small("Volumen", row["Volumen"]),
+                        unsafe_allow_html=True,
+                    )
+
+                with c11:
+                    st.markdown(
+                        metric_box_small("Dollar-Volumen", row["Dollar-Volumen"]),
+                        unsafe_allow_html=True,
+                    )
+
                 st.markdown(
                     f"""
                     <div class="badge-row">
                         <span class="badge {status_badge_class(status)}">{status}</span>
                         <span class="badge">{rating_badge(rating)}</span>
                         <span class="badge">{stage2_status}</span>
+                        <span class="badge">{setup_type}</span>
                         <span class="badge">Rel. SPY: {row['Relativ zu SPY']}</span>
                         <span class="badge">Rel. QQQ: {row['Relativ zu QQQ']}</span>
                         <span class="badge">1M: {row['1M']}</span>
                         <span class="badge">3M: {row['3M']}</span>
+                        <span class="badge">6M: {row['6M']}</span>
                     </div>
                     <div class="info-line">
-                        <b>Aktion:</b> {action} · <b>Kursdaten:</b> {data_source}
+                        <b>Aktion:</b> {action} · <b>Kursdaten:</b> {data_source}<br>
+                        <b>Qualität:</b> {quality_reason}
                     </div>
                     """,
                     unsafe_allow_html=True,
@@ -873,15 +1037,20 @@ def show_compact_table(df, title):
             "company",
             "symbol",
             "wkn",
+            "exchange",
+            "setup_type",
             "Datum",
             "calendar_source",
             "Kurs",
+            "Marktkapitalisierung",
+            "Dollar-Volumen",
             "2M Proxy",
             "Abstand 50-Tage-Linie",
             "Abstand 200-Tage-Linie",
             "stage2_score",
             "score",
             "status",
+            "quality_reason",
             "chart_url",
         ]
     ].rename(
@@ -889,10 +1058,13 @@ def show_compact_table(df, title):
             "company": "Unternehmen",
             "symbol": "Ticker",
             "wkn": "WKN",
+            "exchange": "Börse",
+            "setup_type": "Setup",
             "calendar_source": "Earnings-Quelle",
             "stage2_score": "Stage 2",
             "score": "Score",
             "status": "Status",
+            "quality_reason": "Qualität",
             "chart_url": "Chart",
         }
     )
@@ -933,11 +1105,18 @@ def show_detail_table(df):
             "wkn": "WKN",
             "isin": "ISIN",
             "exchange": "Börse",
+            "sector": "Sektor",
+            "industry": "Industrie",
+            "setup_type": "Setup",
             "earnings_date": "Earnings-Datum roh",
             "calendar_source": "Earnings-Quelle",
             "current_close": "Aktueller Kurs roh",
+            "market_cap_m": "Market Cap Mio.",
+            "volume": "Volumen",
+            "dollar_volume_m": "Dollar-Volumen Mio.",
             "performance_1m_pct": "1M-Performance %",
             "performance_3m_pct": "3M-Performance %",
+            "performance_6m_pct": "6M-Performance %",
             "performance_2m_proxy_pct": "2M-Performance Proxy %",
             "spy_relative_proxy_pct": "Relativ zu SPY %",
             "qqq_relative_proxy_pct": "Relativ zu QQQ %",
@@ -950,6 +1129,8 @@ def show_detail_table(df):
             "score": "Gesamtscore",
             "rating": "Rating",
             "status": "Status",
+            "quality_pass": "Qualitätsfilter erfüllt",
+            "quality_reason": "Qualität",
             "interpretation": "Interpretation",
             "action": "Aktion",
             "chart_url": "Chart öffnen",
@@ -986,13 +1167,13 @@ def show_explanation_box(min_performance):
         <div class="summary-card">
             <div class="summary-title">Lesart</div>
             <div class="summary-text">
+                <b>A-Setup:</b> starkes Momentum, hohe Trendqualität, Qualitätsfilter erfüllt.<br>
+                <b>B-Setup:</b> Momentum vorhanden, aber nicht perfekt.<br>
+                <b>Pre-Earnings:</b> Zahlen stehen noch bevor. Das ist dein Hauptscreening für Vorlauf-Momentum.<br>
+                <b>Post-Earnings:</b> Zahlen wurden bereits gemeldet. Das ist eine Reaktions-/Follow-Through-Liste.<br>
                 <b>Treffer:</b> geschätzte 2M-Performance liegt bei mindestens {min_performance:.0f} %.<br>
-                <b>2M-Performance Proxy:</b> wird aus TradingView 1M- und 3M-Performance abgeleitet.<br>
-                <b>Abstand 50-Tage-Linie:</b> Abstand des aktuellen Kurses zur 50-Tage-Linie.<br>
-                <b>Abstand 200-Tage-Linie:</b> Abstand des aktuellen Kurses zur 200-Tage-Linie.<br>
-                <b>Earnings-Datum / Earnings-Quelle:</b> zeigt, wann die Zahlen anstehen oder zuletzt gemeldet wurden und aus welcher Quelle der Termin kommt.<br>
-                <b>Stage-2-Score:</b> technische Trendqualität über Kurs, 50-Tage-Linie, 200-Tage-Linie und Performance.<br>
-                <b>Chart-Vorschau:</b> kleine Finviz-Bildvorschau. Für Detailanalyse immer TradingView öffnen.
+                <b>Qualitätsfilter:</b> entfernt OTC, Pennystocks, Microcaps und illiquide Aktien.<br>
+                <b>Stage-2-Score:</b> technische Trendqualität über Kurs, 50-Tage-Linie, 200-Tage-Linie und Performance.
             </div>
         </div>
         """,
@@ -1033,6 +1214,14 @@ if run_now:
             forward_days=forward_days,
             min_performance_2m=min_performance,
             tradingview_limit=tradingview_limit,
+            min_price=min_price,
+            min_market_cap_m=min_market_cap_m,
+            min_volume=min_volume,
+            min_dollar_volume_m=min_dollar_volume_m,
+            allowed_exchanges=allowed_exchanges,
+            exclude_otc=exclude_otc,
+            apply_quality_filter=apply_quality_filter,
+            setup_filter=setup_filter,
         )
 
     st.session_state.hits_df = hits_df
@@ -1087,7 +1276,7 @@ st.divider()
 
 st.subheader("Filter für alle Kandidaten")
 
-f1, f2, f3 = st.columns(3)
+f1, f2, f3, f4 = st.columns(4)
 
 with f1:
     status_filter = st.multiselect(
@@ -1097,13 +1286,20 @@ with f1:
     )
 
 with f2:
+    setup_type_filter = st.multiselect(
+        "Setup",
+        options=sorted(display_all["setup_type"].dropna().unique()),
+        default=sorted(display_all["setup_type"].dropna().unique()),
+    )
+
+with f3:
     source_filter = st.multiselect(
         "Earnings-Quelle",
         options=sorted(display_all["calendar_source"].dropna().unique()),
         default=sorted(display_all["calendar_source"].dropna().unique()),
     )
 
-with f3:
+with f4:
     stage_filter = st.multiselect(
         "Stage-2-Status",
         options=sorted(display_all["stage2_status"].dropna().unique()),
@@ -1112,6 +1308,7 @@ with f3:
 
 filtered_all = all_df[
     all_df["status"].isin(status_filter)
+    & all_df["setup_type"].isin(setup_type_filter)
     & all_df["calendar_source"].isin(source_filter)
     & all_df["stage2_status"].isin(stage_filter)
 ]
