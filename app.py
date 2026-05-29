@@ -248,24 +248,38 @@ st.markdown(
         }
 
         .sort-panel {
-            background: #182235;
-            border: 1px solid rgba(255,255,255,0.14);
-            border-radius: 18px;
-            padding: 15px 16px;
-            margin-bottom: 18px;
+            background: #1B263A;
+            border: 1px solid rgba(255,255,255,0.16);
+            border-radius: 20px;
+            padding: 16px 18px;
+            margin-top: 18px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 24px rgba(0,0,0,0.24);
         }
 
         .sort-title {
-            font-size: 16px;
+            font-size: 20px;
             font-weight: 850;
             color: #FFFFFF;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
 
         .sort-hint {
-            color: #CBD5E1;
+            color: #E2E8F0;
+            font-size: 13px;
+            margin-bottom: 12px;
+        }
+
+        .sort-active {
+            display: inline-flex;
+            border-radius: 999px;
+            padding: 6px 12px;
             font-size: 12px;
-            margin-bottom: 10px;
+            font-weight: 850;
+            background: rgba(37,99,235,0.22);
+            border: 1px solid rgba(37,99,235,0.55);
+            color: #BFDBFE;
+            margin-top: 10px;
         }
 
         .stButton > button,
@@ -624,16 +638,16 @@ def sort_dataframe(df, sort_key):
     return sorted_df.sort_values("score", ascending=False)
 
 
-def show_sort_buttons():
+def show_sort_buttons(position_label=""):
     if "sort_key" not in st.session_state:
         st.session_state.sort_key = "score"
 
     st.markdown(
-        """
+        f"""
         <div class="sort-panel">
-            <div class="sort-title">Sortierung</div>
+            <div class="sort-title">Sortierung {position_label}</div>
             <div class="sort-hint">
-                Sortiere die unten aufgeführten Aktien nach dem Kriterium, das für deine Analyse gerade relevant ist.
+                Diese Sortierung wirkt auf die Aktienkarten unten und auf die kompakte Tabelle.
             </div>
         </div>
         """,
@@ -643,37 +657,37 @@ def show_sort_buttons():
     b1, b2, b3, b4 = st.columns(4)
 
     with b1:
-        if st.button("Score ↓", use_container_width=True):
+        if st.button("Score ↓", use_container_width=True, key=f"sort_score_{position_label}"):
             st.session_state.sort_key = "score"
 
     with b2:
-        if st.button("2M-Momentum ↓", use_container_width=True):
+        if st.button("2M-Momentum ↓", use_container_width=True, key=f"sort_momentum_{position_label}"):
             st.session_state.sort_key = "momentum"
 
     with b3:
-        if st.button("Stage 2 ↓", use_container_width=True):
+        if st.button("Stage 2 ↓", use_container_width=True, key=f"sort_stage2_{position_label}"):
             st.session_state.sort_key = "stage2"
 
     with b4:
-        if st.button("Ticker A–Z", use_container_width=True):
+        if st.button("Ticker A–Z", use_container_width=True, key=f"sort_ticker_{position_label}"):
             st.session_state.sort_key = "ticker"
 
     b5, b6, b7, b8 = st.columns(4)
 
     with b5:
-        if st.button("Earnings früh → spät", use_container_width=True):
+        if st.button("Earnings früh → spät", use_container_width=True, key=f"sort_earnings_asc_{position_label}"):
             st.session_state.sort_key = "earnings_date_asc"
 
     with b6:
-        if st.button("Earnings spät → früh", use_container_width=True):
+        if st.button("Earnings spät → früh", use_container_width=True, key=f"sort_earnings_desc_{position_label}"):
             st.session_state.sort_key = "earnings_date_desc"
 
     with b7:
-        if st.button("Abstand 50-Tage ↓", use_container_width=True):
+        if st.button("Abstand 50-Tage ↓", use_container_width=True, key=f"sort_distance50_{position_label}"):
             st.session_state.sort_key = "distance_50"
 
     with b8:
-        if st.button("Abstand 200-Tage ↓", use_container_width=True):
+        if st.button("Abstand 200-Tage ↓", use_container_width=True, key=f"sort_distance200_{position_label}"):
             st.session_state.sort_key = "distance_200"
 
     sort_labels = {
@@ -687,7 +701,14 @@ def show_sort_buttons():
         "distance_200": "Abstand zur 200-Tage-Linie absteigend",
     }
 
-    st.caption(f"Aktive Sortierung: {sort_labels.get(st.session_state.sort_key, 'Score absteigend')}")
+    st.markdown(
+        f"""
+        <div class="sort-active">
+            Aktive Sortierung: {sort_labels.get(st.session_state.sort_key, 'Score absteigend')}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def show_candidate_cards(df, title, empty_message, limit=20, show_charts=True):
@@ -1024,8 +1045,17 @@ display_all = prepare_display_df(all_df)
 display_hits = prepare_display_df(hits_df)
 
 
+st.subheader("Sortierung")
+
+show_sort_buttons("oben")
+
+hits_sorted = sort_dataframe(hits_df, st.session_state.sort_key)
+all_sorted = sort_dataframe(all_df, st.session_state.sort_key)
+
+st.divider()
+
 show_candidate_cards(
-    hits_df,
+    hits_sorted,
     title="Treffer: Aktien über Momentum-Filter",
     empty_message="Keine Aktie erfüllt aktuell deinen Momentum-Filter.",
     limit=max_cards,
@@ -1034,7 +1064,7 @@ show_candidate_cards(
 
 st.divider()
 
-st.subheader("Filter und Sortierung für alle Kandidaten")
+st.subheader("Filter für alle Kandidaten")
 
 f1, f2, f3 = st.columns(3)
 
@@ -1064,8 +1094,6 @@ filtered_all = all_df[
     & all_df["calendar_source"].isin(source_filter)
     & all_df["stage2_status"].isin(stage_filter)
 ]
-
-show_sort_buttons()
 
 filtered_all = sort_dataframe(filtered_all, st.session_state.sort_key)
 
