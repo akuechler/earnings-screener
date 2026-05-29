@@ -71,7 +71,7 @@ st.markdown(
             padding-top: 1.7rem;
             padding-left: 2.1rem;
             padding-right: 2.1rem;
-            max-width: 1600px;
+            max-width: 1620px;
         }
 
         h1, h2, h3, h4 {
@@ -89,12 +89,12 @@ st.markdown(
             background: linear-gradient(135deg, #1E293B 0%, #172033 100%);
             border: 1px solid rgba(255,255,255,0.18);
             box-shadow: 0 12px 30px rgba(0,0,0,0.32);
-            margin-bottom: 24px;
+            margin-bottom: 22px;
         }
 
         .main-title {
             font-size: 36px;
-            font-weight: 850;
+            font-weight: 900;
             line-height: 1.08;
             margin-bottom: 7px;
             color: #FFFFFF;
@@ -103,10 +103,10 @@ st.markdown(
         .main-subtitle {
             font-size: 14px;
             color: #E2E8F0;
+            font-weight: 650;
         }
 
-        .summary-card,
-        .control-card {
+        .panel {
             background: #1B263A;
             border: 1px solid rgba(255,255,255,0.22);
             border-radius: 20px;
@@ -115,57 +115,140 @@ st.markdown(
             box-shadow: 0 10px 24px rgba(0,0,0,0.24);
         }
 
-        .summary-title,
-        .control-title {
+        .panel-title {
             font-size: 22px;
-            font-weight: 850;
+            font-weight: 900;
             margin-bottom: 8px;
             color: #FFFFFF;
         }
 
-        .summary-text,
-        .control-text {
+        .panel-text {
             font-size: 14px;
             color: #F8FAFC;
             line-height: 1.45;
             font-weight: 650;
         }
 
-        .summary-metric {
-            background: #1B263A;
+        .kpi-card {
+            background: #182235;
             border: 1px solid rgba(255,255,255,0.24);
             border-radius: 16px;
             padding: 13px 14px;
-            min-height: 78px;
+            min-height: 82px;
             box-shadow: 0 6px 16px rgba(0,0,0,0.20);
             margin-bottom: 12px;
         }
 
-        .summary-metric-label {
+        .kpi-label {
             color: #FFFFFF;
             font-size: 12px;
-            font-weight: 850;
+            font-weight: 900;
             opacity: 1;
             margin-bottom: 8px;
         }
 
-        .summary-metric-value {
+        .kpi-value {
             color: #FFFFFF;
             font-size: 28px;
-            font-weight: 900;
+            font-weight: 950;
             line-height: 1.05;
             opacity: 1;
         }
 
-        .summary-metric-delta {
+        .kpi-sub {
             display: inline-flex;
-            margin-top: 6px;
+            margin-top: 7px;
             border-radius: 999px;
             padding: 4px 8px;
             font-size: 12px;
             font-weight: 850;
+            background: rgba(37,99,235,0.24);
+            color: #DBEAFE;
+            border: 1px solid rgba(37,99,235,0.55);
+        }
+
+        .kpi-green {
             background: rgba(34,197,94,0.20);
             color: #BBF7D0;
+            border-color: rgba(34,197,94,0.55);
+        }
+
+        .kpi-yellow {
+            background: rgba(245,158,11,0.20);
+            color: #FDE68A;
+            border-color: rgba(245,158,11,0.55);
+        }
+
+        .top-candidate {
+            background: linear-gradient(135deg, #102A43 0%, #162032 100%);
+            border: 1px solid rgba(34,197,94,0.42);
+            border-radius: 20px;
+            padding: 18px 20px;
+            margin-bottom: 18px;
+            box-shadow: 0 10px 24px rgba(0,0,0,0.24);
+        }
+
+        .top-candidate-label {
+            color: #BBF7D0;
+            font-size: 12px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 8px;
+        }
+
+        .top-candidate-title {
+            font-size: 28px;
+            font-weight: 950;
+            color: #FFFFFF;
+            margin-bottom: 8px;
+            line-height: 1.1;
+        }
+
+        .top-candidate-meta {
+            color: #E2E8F0;
+            font-size: 13px;
+            font-weight: 700;
+            line-height: 1.45;
+        }
+
+        .control-grid {
+            background: #1B263A;
+            border: 1px solid rgba(255,255,255,0.22);
+            border-radius: 20px;
+            padding: 18px 20px;
+            margin-top: 6px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 24px rgba(0,0,0,0.24);
+        }
+
+        .control-title {
+            font-size: 22px;
+            font-weight: 950;
+            color: #FFFFFF;
+            margin-bottom: 6px;
+        }
+
+        .control-text {
+            color: #E2E8F0;
+            font-size: 13px;
+            font-weight: 650;
+            margin-bottom: 14px;
+        }
+
+        .active-filter-line {
+            display: inline-flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            border-radius: 999px;
+            padding: 7px 12px;
+            font-size: 12px;
+            font-weight: 850;
+            background: rgba(37,99,235,0.28);
+            border: 1px solid rgba(37,99,235,0.68);
+            color: #DBEAFE;
+            margin-top: 10px;
+            margin-bottom: 8px;
         }
 
         .stock-card {
@@ -193,7 +276,7 @@ st.markdown(
 
         .stock-title {
             font-size: 22px;
-            font-weight: 850;
+            font-weight: 900;
             color: #FFFFFF;
             margin-bottom: 4px;
         }
@@ -202,7 +285,7 @@ st.markdown(
             color: #F1F5F9;
             font-size: 12px;
             margin-bottom: 12px;
-            font-weight: 700;
+            font-weight: 750;
         }
 
         .metric-box {
@@ -218,14 +301,14 @@ st.markdown(
             color: #FFFFFF;
             margin-bottom: 5px;
             white-space: nowrap;
-            font-weight: 850;
+            font-weight: 900;
             opacity: 1;
         }
 
         .metric-value {
             font-size: 20px;
             line-height: 1.15;
-            font-weight: 900;
+            font-weight: 950;
             color: #FFFFFF;
             white-space: nowrap;
             opacity: 1;
@@ -234,7 +317,7 @@ st.markdown(
         .metric-value-small {
             font-size: 17px;
             line-height: 1.15;
-            font-weight: 900;
+            font-weight: 950;
             color: #FFFFFF;
             white-space: nowrap;
             opacity: 1;
@@ -332,19 +415,6 @@ st.markdown(
             font-weight: 800;
         }
 
-        .sort-active {
-            display: inline-flex;
-            border-radius: 999px;
-            padding: 6px 12px;
-            font-size: 12px;
-            font-weight: 850;
-            background: rgba(37,99,235,0.28);
-            border: 1px solid rgba(37,99,235,0.68);
-            color: #DBEAFE;
-            margin-top: 10px;
-            margin-bottom: 8px;
-        }
-
         .stButton > button,
         .stLinkButton > a {
             background: #2563EB !important;
@@ -391,7 +461,7 @@ st.markdown(
     <div class="main-header">
         <div class="main-title">Earnings Momentum Screener von Andreas</div>
         <div class="main-subtitle">
-            Analysten-Dashboard · Qualitätsfilter · Pre-/Post-Earnings · Momentum · 50-/200-Tage-Linie · Chartvorschau
+            Analyst Cockpit · Qualitätsfilter · Pre-/Post-Earnings · Momentum · 50-/200-Tage-Linie · Chartvorschau
         </div>
     </div>
     """,
@@ -415,7 +485,7 @@ if "has_results" not in st.session_state:
     st.session_state.has_results = False
 
 
-st.sidebar.header("Steuerung")
+st.sidebar.header("Screening")
 
 lookback_days = st.sidebar.slider(
     "Rückblick in Kalendertagen",
@@ -507,6 +577,7 @@ min_dollar_volume_m = st.sidebar.slider(
 )
 
 st.sidebar.divider()
+st.sidebar.header("Darstellung")
 
 show_chart_previews = st.sidebar.checkbox(
     "Chart-Vorschau anzeigen",
@@ -698,18 +769,18 @@ def metric_box_small(label, value, css_class=""):
     """
 
 
-def summary_metric(label, value, delta=None):
-    delta_html = ""
+def kpi_card(label, value, sub=None, color_class=""):
+    sub_html = ""
 
-    if delta is not None:
-        delta_html = f'<div class="summary-metric-delta">{delta}</div>'
+    if sub:
+        sub_html = f'<div class="kpi-sub {color_class}">{sub}</div>'
 
     st.markdown(
         f"""
-        <div class="summary-metric">
-            <div class="summary-metric-label">{label}</div>
-            <div class="summary-metric-value">{value}</div>
-            {delta_html}
+        <div class="kpi-card">
+            <div class="kpi-label">{label}</div>
+            <div class="kpi-value">{value}</div>
+            {sub_html}
         </div>
         """,
         unsafe_allow_html=True,
@@ -726,84 +797,6 @@ def valid_value(value):
     text = str(value).strip().lower()
 
     return text not in ["", "n/a", "nan", "none", "null"]
-
-
-def show_screening_summary(stats):
-    start_date = format_date_de(stats.get("start_date"))
-    end_date = format_date_de(stats.get("end_date"))
-    hits = stats.get("hits", 0)
-    min_perf = stats.get("min_performance_2m", 0)
-
-    if hits > 0:
-        result_text = f"{hits} Aktie(n) erfüllen den Momentum-Filter von mindestens {min_perf:.0f} %."
-        result_color = "positive"
-    else:
-        result_text = f"Kein Treffer über {min_perf:.0f} %. Der Filter ist aktuell streng oder der Zeitraum unattraktiv."
-        result_color = "neutral"
-
-    st.markdown(
-        f"""
-        <div class="summary-card">
-            <div class="summary-title">Screening-Übersicht</div>
-            <div class="summary-text">
-                Zeitraum: <b>{start_date}</b> bis <b>{end_date}</b><br>
-                Ergebnis: <span class="{result_color}"><b>{result_text}</b></span><br>
-                Qualitätsfilter: Kurs ≥ {stats.get("min_price")} USD · Market Cap ≥ {stats.get("min_market_cap_m")} Mio. USD ·
-                Volumen ≥ {format_number(stats.get("min_volume"))} · Dollar-Volumen ≥ {stats.get("min_dollar_volume_m")} Mio. USD
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    row1_items = [
-        ("FMP Earnings", stats.get("fmp_earnings_found", 0)),
-        ("Finnhub Earnings", stats.get("finnhub_earnings_found", 0)),
-        ("TradingView Earnings", stats.get("tradingview_earnings_found", 0)),
-        ("Kandidaten gesamt", stats.get("candidates_total", 0)),
-        ("Mit Performance-Daten", stats.get("stocks_with_price_data", 0)),
-        ("Treffer", hits),
-    ]
-
-    cols = st.columns(len(row1_items))
-
-    for col, item in zip(cols, row1_items):
-        with col:
-            summary_metric(item[0], item[1])
-
-    optional_items = []
-
-    spy_value = stats.get("spy_perf_2m")
-    qqq_value = stats.get("qqq_perf_2m")
-    setup_value = stats.get("setup_filter", "Alle")
-
-    if valid_value(spy_value):
-        optional_items.append(("SPY 2M", format_percent(spy_value)))
-
-    if valid_value(qqq_value):
-        optional_items.append(("QQQ 2M", format_percent(qqq_value)))
-
-    if valid_value(setup_value):
-        optional_items.append(("Setup-Filter", setup_value))
-
-    if optional_items:
-        cols = st.columns(len(optional_items))
-
-        for col, item in zip(cols, optional_items):
-            with col:
-                summary_metric(item[0], item[1])
-
-    if stats.get("best_symbol") is not None:
-        st.markdown(
-            f"""
-            <div class="summary-card">
-                <div class="summary-text">Bester geprüfter Kandidat</div>
-                <div class="summary-title">{stats.get("best_company")} ({stats.get("best_symbol")})</div>
-                <span class="summary-metric-delta">{format_percent(stats.get("best_performance"))}</span>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
 
 
 def sort_dataframe(df, sort_key):
@@ -847,41 +840,110 @@ def sort_dataframe(df, sort_key):
     return sorted_df.sort_values("score", ascending=False)
 
 
-def show_top_control_panel(display_all):
+def show_screening_summary(stats, all_df, hits_df):
+    start_date = format_date_de(stats.get("start_date"))
+    end_date = format_date_de(stats.get("end_date"))
+
+    if all_df is None or all_df.empty:
+        a_setups = 0
+        b_setups = 0
+        pre_earnings = 0
+        post_earnings = 0
+        avg_momentum = None
+    else:
+        a_setups = int((all_df["status"] == "A-Setup").sum())
+        b_setups = int((all_df["status"] == "B-Setup").sum())
+        pre_earnings = int((all_df["setup_type"] == "Pre-Earnings").sum())
+        post_earnings = int((all_df["setup_type"] == "Post-Earnings").sum())
+        avg_momentum = all_df["performance_2m_proxy_pct"].mean()
+
+    hits = 0 if hits_df is None else len(hits_df)
+
     st.markdown(
-        """
-        <div class="control-card">
-            <div class="control-title">Anzeige, Filter und Sortierung</div>
-            <div class="control-text">
-                Wähle oben, welche Bereiche angezeigt werden sollen. Die Filter wirken auf Treffer, Kandidaten, Tabellen und Charts.
+        f"""
+        <div class="panel">
+            <div class="panel-title">Screening-Übersicht</div>
+            <div class="panel-text">
+                Zeitraum: <b>{start_date}</b> bis <b>{end_date}</b><br>
+                Qualitätsfilter: Kurs ≥ {stats.get("min_price")} USD · Market Cap ≥ {stats.get("min_market_cap_m")} Mio. USD ·
+                Volumen ≥ {format_number(stats.get("min_volume"))} · Dollar-Volumen ≥ {stats.get("min_dollar_volume_m")} Mio. USD
             </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    a1, a2, a3 = st.columns([1.2, 1.2, 1])
+    c1, c2, c3, c4, c5, c6 = st.columns(6)
 
-    with a1:
-        visible_sections = st.multiselect(
-            "Anzeigen",
-            options=[
-                "Treffer-Karten",
-                "Alle Kandidaten-Karten",
-                "Kompakte Tabelle",
-                "Technische Detailtabelle",
-                "Top-15-Score-Chart",
-                "Top-15-Momentum-Chart",
-                "Lesart",
-            ],
-            default=[
-                "Treffer-Karten",
-                "Alle Kandidaten-Karten",
-                "Kompakte Tabelle",
-            ],
+    with c1:
+        kpi_card("Momentum-Treffer", hits, f"≥ {stats.get('min_performance_2m', 0):.0f} %", "kpi-green")
+
+    with c2:
+        kpi_card("A-Setups", a_setups, "höchste Qualität", "kpi-green")
+
+    with c3:
+        kpi_card("B-Setups", b_setups, "Watchlist", "kpi-yellow")
+
+    with c4:
+        kpi_card("Pre-Earnings", pre_earnings, "vor Zahlen")
+
+    with c5:
+        kpi_card("Post-Earnings", post_earnings, "nach Zahlen")
+
+    with c6:
+        kpi_card("Ø 2M-Momentum", format_percent(avg_momentum), "alle Kandidaten")
+
+    c7, c8, c9, c10 = st.columns(4)
+
+    with c7:
+        kpi_card("Kandidaten gesamt", stats.get("candidates_total", 0))
+
+    with c8:
+        kpi_card("Mit Performance-Daten", stats.get("stocks_with_price_data", 0))
+
+    with c9:
+        kpi_card("TradingView Earnings", stats.get("tradingview_earnings_found", 0))
+
+    with c10:
+        kpi_card("Datenquellen extern", f"FMP {stats.get('fmp_earnings_found', 0)} · Finnhub {stats.get('finnhub_earnings_found', 0)}")
+
+    if all_df is not None and not all_df.empty:
+        best = sort_dataframe(all_df, "score").iloc[0]
+
+        st.markdown(
+            f"""
+            <div class="top-candidate">
+                <div class="top-candidate-label">Bester Kandidat nach Score</div>
+                <div class="top-candidate-title">{best.get("company", "n/a")} ({best.get("symbol", "n/a")})</div>
+                <div class="top-candidate-meta">
+                    Status: <b>{best.get("status", "n/a")}</b> · Setup: <b>{best.get("setup_type", "n/a")}</b> ·
+                    Earnings: <b>{format_date_de(best.get("earnings_date"))}</b> ·
+                    Score: <b>{int(best.get("score", 0))} %</b> ·
+                    Stage 2: <b>{int(best.get("stage2_score", 0))} %</b> ·
+                    2M-Momentum: <b>{format_percent(best.get("performance_2m_proxy_pct"))}</b>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
 
-    with a2:
+
+def show_top_control_panel(display_all):
+    st.markdown(
+        """
+        <div class="control-grid">
+            <div class="control-title">Analyst Cockpit</div>
+            <div class="control-text">
+                Oben steuerst du die Anzeige. Erweiterte Detailfilter sind eingeklappt, damit das Dashboard nicht wie ein Formular wirkt.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    c1, c2, c3, c4 = st.columns([1.2, 1.2, 1, 1])
+
+    with c1:
         sort_choice = st.selectbox(
             "Sortierung",
             options=[
@@ -899,10 +961,59 @@ def show_top_control_panel(display_all):
             index=0,
         )
 
-    with a3:
+    with c2:
+        view_mode = st.selectbox(
+            "Ansicht",
+            options=[
+                "Treffer + kompakte Tabelle",
+                "Nur Treffer",
+                "Alle Kandidaten",
+                "Tabellenmodus",
+                "Charts & Ranking",
+                "Vollansicht",
+            ],
+            index=0,
+        )
+
+    with c3:
         only_hits = st.checkbox(
             "Nur Momentum-Treffer",
             value=False,
+        )
+
+    with c4:
+        chart_toggle = st.checkbox(
+            "Charts anzeigen",
+            value=show_chart_previews,
+        )
+
+    c5, c6, c7 = st.columns(3)
+
+    with c5:
+        min_score_filter = st.slider(
+            "Mindest-Score",
+            min_value=0,
+            max_value=100,
+            value=0,
+            step=5,
+        )
+
+    with c6:
+        min_stage2_filter = st.slider(
+            "Mindest-Stage-2",
+            min_value=0,
+            max_value=100,
+            value=0,
+            step=5,
+        )
+
+    with c7:
+        min_momentum_filter = st.slider(
+            "Mindest-2M-Momentum",
+            min_value=-50,
+            max_value=200,
+            value=-50,
+            step=5,
         )
 
     sort_map = {
@@ -920,70 +1031,36 @@ def show_top_control_panel(display_all):
 
     st.session_state.sort_key = sort_map.get(sort_choice, "score")
 
-    f1, f2, f3, f4 = st.columns(4)
+    with st.expander("Erweiterte Filter öffnen"):
+        f1, f2, f3, f4 = st.columns(4)
 
-    with f1:
-        status_filter = st.multiselect(
-            "Status",
-            options=sorted(display_all["status"].dropna().unique()),
-            default=sorted(display_all["status"].dropna().unique()),
-        )
+        with f1:
+            status_filter = st.multiselect(
+                "Status",
+                options=sorted(display_all["status"].dropna().unique()),
+                default=sorted(display_all["status"].dropna().unique()),
+            )
 
-    with f2:
-        setup_type_filter = st.multiselect(
-            "Setup",
-            options=sorted(display_all["setup_type"].dropna().unique()),
-            default=sorted(display_all["setup_type"].dropna().unique()),
-        )
+        with f2:
+            setup_type_filter = st.multiselect(
+                "Setup",
+                options=sorted(display_all["setup_type"].dropna().unique()),
+                default=sorted(display_all["setup_type"].dropna().unique()),
+            )
 
-    with f3:
-        source_filter = st.multiselect(
-            "Earnings-Quelle",
-            options=sorted(display_all["calendar_source"].dropna().unique()),
-            default=sorted(display_all["calendar_source"].dropna().unique()),
-        )
+        with f3:
+            source_filter = st.multiselect(
+                "Earnings-Quelle",
+                options=sorted(display_all["calendar_source"].dropna().unique()),
+                default=sorted(display_all["calendar_source"].dropna().unique()),
+            )
 
-    with f4:
-        stage_filter = st.multiselect(
-            "Stage-2-Status",
-            options=sorted(display_all["stage2_status"].dropna().unique()),
-            default=sorted(display_all["stage2_status"].dropna().unique()),
-        )
-
-    f5, f6, f7, f8 = st.columns(4)
-
-    with f5:
-        min_score_filter = st.slider(
-            "Mindest-Score",
-            min_value=0,
-            max_value=100,
-            value=0,
-            step=5,
-        )
-
-    with f6:
-        min_stage2_filter = st.slider(
-            "Mindest-Stage-2",
-            min_value=0,
-            max_value=100,
-            value=0,
-            step=5,
-        )
-
-    with f7:
-        min_momentum_filter = st.slider(
-            "Mindest-2M-Momentum",
-            min_value=-50,
-            max_value=200,
-            value=-50,
-            step=5,
-        )
-
-    with f8:
-        chart_toggle = st.checkbox(
-            "Charts in Karten anzeigen",
-            value=show_chart_previews,
-        )
+        with f4:
+            stage_filter = st.multiselect(
+                "Stage-2-Status",
+                options=sorted(display_all["stage2_status"].dropna().unique()),
+                default=sorted(display_all["stage2_status"].dropna().unique()),
+            )
 
     sort_labels = {
         "score": "Score absteigend",
@@ -1000,15 +1077,15 @@ def show_top_control_panel(display_all):
 
     st.markdown(
         f"""
-        <div class="sort-active">
-            Aktive Sortierung: {sort_labels.get(st.session_state.sort_key, 'Score absteigend')}
+        <div class="active-filter-line">
+            Aktive Sortierung: {sort_labels.get(st.session_state.sort_key, 'Score absteigend')} · Ansicht: {view_mode}
         </div>
         """,
         unsafe_allow_html=True,
     )
 
     return {
-        "visible_sections": visible_sections,
+        "view_mode": view_mode,
         "status_filter": status_filter,
         "setup_type_filter": setup_type_filter,
         "source_filter": source_filter,
@@ -1350,9 +1427,9 @@ def show_detail_table(df):
 def show_explanation_box(min_performance):
     st.markdown(
         f"""
-        <div class="summary-card">
-            <div class="summary-title">Lesart</div>
-            <div class="summary-text">
+        <div class="panel">
+            <div class="panel-title">Lesart</div>
+            <div class="panel-text">
                 <b>A-Setup:</b> starkes Momentum, hohe Trendqualität, Qualitätsfilter erfüllt.<br>
                 <b>B-Setup:</b> Momentum vorhanden, aber nicht perfekt.<br>
                 <b>Pre-Earnings:</b> Zahlen stehen noch bevor. Das ist dein Hauptscreening für Vorlauf-Momentum.<br>
@@ -1430,15 +1507,14 @@ stats = st.session_state.stats
 if stats.get("tradingview_error"):
     st.warning(f"TradingView-Quelle: {stats['tradingview_error']}")
 
-show_screening_summary(stats)
-
-st.divider()
-
 if all_df is None or all_df.empty:
+    show_screening_summary(stats, all_df, hits_df)
     st.warning("Keine Kandidaten mit verwertbaren TradingView-Performance-Daten.")
     show_explanation_box(min_performance)
     st.stop()
 
+
+show_screening_summary(stats, all_df, hits_df)
 
 display_all = prepare_display_df(all_df)
 
@@ -1449,7 +1525,9 @@ filtered_hits = apply_top_filters(hits_df, filters)
 
 st.divider()
 
-if "Treffer-Karten" in filters["visible_sections"]:
+view_mode = filters["view_mode"]
+
+if view_mode == "Treffer + kompakte Tabelle":
     show_candidate_cards(
         filtered_hits,
         title="Treffer: Aktien über Momentum-Filter",
@@ -1458,8 +1536,23 @@ if "Treffer-Karten" in filters["visible_sections"]:
         show_charts=filters["chart_toggle"],
     )
 
-if "Alle Kandidaten-Karten" in filters["visible_sections"]:
     st.divider()
+
+    show_compact_table(
+        filtered_all,
+        title="Kompakte Tabelle",
+    )
+
+elif view_mode == "Nur Treffer":
+    show_candidate_cards(
+        filtered_hits,
+        title="Treffer: Aktien über Momentum-Filter",
+        empty_message="Keine Aktie erfüllt aktuell deine Filter.",
+        limit=max_cards,
+        show_charts=filters["chart_toggle"],
+    )
+
+elif view_mode == "Alle Kandidaten":
     show_candidate_cards(
         filtered_all,
         title="Alle geprüften Kandidaten — Kartenansicht",
@@ -1468,19 +1561,16 @@ if "Alle Kandidaten-Karten" in filters["visible_sections"]:
         show_charts=filters["chart_toggle"],
     )
 
-if "Kompakte Tabelle" in filters["visible_sections"]:
-    st.divider()
+elif view_mode == "Tabellenmodus":
     show_compact_table(
         filtered_all,
         title="Kompakte Tabelle",
     )
 
-if "Technische Detailtabelle" in filters["visible_sections"]:
-    st.divider()
-    show_detail_table(filtered_all)
+    with st.expander("Technische Detailtabelle öffnen"):
+        show_detail_table(filtered_all)
 
-if "Top-15-Score-Chart" in filters["visible_sections"]:
-    st.divider()
+elif view_mode == "Charts & Ranking":
     st.subheader("Top 15 nach Gesamtscore")
 
     top15_score = filtered_all.sort_values("score", ascending=False).head(15)
@@ -1491,8 +1581,8 @@ if "Top-15-Score-Chart" in filters["visible_sections"]:
         y="Gesamtscore",
     )
 
-if "Top-15-Momentum-Chart" in filters["visible_sections"]:
     st.divider()
+
     st.subheader("Top 15 nach 2M-Performance Proxy")
 
     top15_momentum = filtered_all.sort_values(
@@ -1511,8 +1601,68 @@ if "Top-15-Momentum-Chart" in filters["visible_sections"]:
         y="2M-Performance Proxy %",
     )
 
-if "Lesart" in filters["visible_sections"]:
+elif view_mode == "Vollansicht":
+    show_candidate_cards(
+        filtered_hits,
+        title="Treffer: Aktien über Momentum-Filter",
+        empty_message="Keine Aktie erfüllt aktuell deine Filter.",
+        limit=max_cards,
+        show_charts=filters["chart_toggle"],
+    )
+
     st.divider()
+
+    show_candidate_cards(
+        filtered_all,
+        title="Alle geprüften Kandidaten — Kartenansicht",
+        empty_message="Keine Kandidaten nach Filter.",
+        limit=max_cards,
+        show_charts=filters["chart_toggle"],
+    )
+
+    st.divider()
+
+    show_compact_table(
+        filtered_all,
+        title="Kompakte Tabelle",
+    )
+
+    with st.expander("Technische Detailtabelle öffnen"):
+        show_detail_table(filtered_all)
+
+    st.divider()
+
+    st.subheader("Top 15 nach Gesamtscore")
+
+    top15_score = filtered_all.sort_values("score", ascending=False).head(15)
+
+    st.bar_chart(
+        top15_score.rename(columns={"symbol": "Ticker", "score": "Gesamtscore"}),
+        x="Ticker",
+        y="Gesamtscore",
+    )
+
+    st.subheader("Top 15 nach 2M-Performance Proxy")
+
+    top15_momentum = filtered_all.sort_values(
+        "performance_2m_proxy_pct",
+        ascending=False,
+    ).head(15)
+
+    st.bar_chart(
+        top15_momentum.rename(
+            columns={
+                "symbol": "Ticker",
+                "performance_2m_proxy_pct": "2M-Performance Proxy %",
+            }
+        ),
+        x="Ticker",
+        y="2M-Performance Proxy %",
+    )
+
+st.divider()
+
+with st.expander("Lesart und Methodik öffnen"):
     show_explanation_box(min_performance)
 
 st.caption(
