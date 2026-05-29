@@ -9,11 +9,288 @@ st.set_page_config(
     layout="wide",
 )
 
-st.title("Earnings Momentum Screener")
-st.caption(
-    "TradingView-basierter Earnings-Momentum-Screener. "
-    "TradingView ist die Hauptquelle. FMP/Finnhub ergänzen Earnings-Termine."
+
+st.markdown(
+    """
+    <style>
+        .stApp {
+            background: #0E1117;
+            color: #E6EAF2;
+        }
+
+        [data-testid="stSidebar"] {
+            background: #111827;
+            border-right: 1px solid rgba(255,255,255,0.08);
+        }
+
+        [data-testid="stSidebar"] * {
+            color: #E6EAF2;
+        }
+
+        h1, h2, h3, h4 {
+            color: #F5F7FA !important;
+            letter-spacing: -0.02em;
+        }
+
+        p, span, div {
+            color: inherit;
+        }
+
+        .block-container {
+            padding-top: 2.2rem;
+            padding-left: 2.2rem;
+            padding-right: 2.2rem;
+            max-width: 1550px;
+        }
+
+        .main-header {
+            padding: 18px 22px;
+            border-radius: 22px;
+            background: linear-gradient(135deg, #141A24 0%, #1B2432 100%);
+            border: 1px solid rgba(255,255,255,0.08);
+            box-shadow: 0 10px 28px rgba(0,0,0,0.35);
+            margin-bottom: 22px;
+        }
+
+        .main-title {
+            font-size: 36px;
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 6px;
+            color: #F8FAFC;
+        }
+
+        .main-subtitle {
+            font-size: 14px;
+            color: #AAB4C3;
+        }
+
+        .section-card {
+            background: #141A24;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 20px;
+            padding: 18px 20px;
+            box-shadow: 0 8px 22px rgba(0,0,0,0.28);
+            margin-bottom: 18px;
+        }
+
+        .stock-card {
+            background: #141A24;
+            border: 1px solid rgba(255,255,255,0.09);
+            border-radius: 22px;
+            padding: 16px 18px 18px 18px;
+            margin-bottom: 16px;
+            box-shadow: 0 10px 26px rgba(0,0,0,0.30);
+        }
+
+        .stock-card-hit {
+            border-color: rgba(34,197,94,0.55);
+            box-shadow: 0 0 0 1px rgba(34,197,94,0.16), 0 10px 26px rgba(0,0,0,0.30);
+        }
+
+        .stock-card-watch {
+            border-color: rgba(234,179,8,0.45);
+        }
+
+        .stock-title {
+            font-size: 21px;
+            font-weight: 800;
+            color: #F8FAFC;
+            margin-bottom: 4px;
+        }
+
+        .stock-meta {
+            color: #97A3B6;
+            font-size: 12px;
+            margin-bottom: 12px;
+        }
+
+        .metric-box {
+            background: #0F1623;
+            border: 1px solid rgba(255,255,255,0.075);
+            border-radius: 16px;
+            padding: 11px 12px;
+            height: 78px;
+        }
+
+        .metric-label {
+            font-size: 11px;
+            color: #93A0B4;
+            margin-bottom: 5px;
+            white-space: nowrap;
+        }
+
+        .metric-value {
+            font-size: 22px;
+            line-height: 1.1;
+            font-weight: 800;
+            color: #F8FAFC;
+            white-space: nowrap;
+        }
+
+        .metric-value-small {
+            font-size: 18px;
+            line-height: 1.15;
+            font-weight: 800;
+            color: #F8FAFC;
+            white-space: nowrap;
+        }
+
+        .positive {
+            color: #22C55E !important;
+        }
+
+        .negative {
+            color: #EF4444 !important;
+        }
+
+        .neutral {
+            color: #F59E0B !important;
+        }
+
+        .muted {
+            color: #93A0B4 !important;
+        }
+
+        .badge-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+            margin-bottom: 8px;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border-radius: 999px;
+            padding: 5px 10px;
+            font-size: 12px;
+            font-weight: 700;
+            border: 1px solid rgba(255,255,255,0.10);
+            background: #0F1623;
+            color: #DDE3EC;
+        }
+
+        .badge-green {
+            background: rgba(34,197,94,0.13);
+            border-color: rgba(34,197,94,0.38);
+            color: #86EFAC;
+        }
+
+        .badge-yellow {
+            background: rgba(245,158,11,0.13);
+            border-color: rgba(245,158,11,0.38);
+            color: #FCD34D;
+        }
+
+        .badge-red {
+            background: rgba(239,68,68,0.13);
+            border-color: rgba(239,68,68,0.38);
+            color: #FCA5A5;
+        }
+
+        .badge-blue {
+            background: rgba(59,130,246,0.13);
+            border-color: rgba(59,130,246,0.38);
+            color: #93C5FD;
+        }
+
+        .info-line {
+            color: #AAB4C3;
+            font-size: 13px;
+            line-height: 1.45;
+            margin-top: 8px;
+        }
+
+        .chart-wrap {
+            background: #0B0F17;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px;
+            overflow: hidden;
+            padding: 8px;
+            margin-top: 8px;
+        }
+
+        .chart-wrap img {
+            width: 100%;
+            max-width: 560px;
+            height: auto;
+            display: block;
+            border-radius: 10px;
+        }
+
+        .chart-caption {
+            font-size: 11px;
+            color: #8C98AA;
+            margin-top: 5px;
+        }
+
+        .stButton > button,
+        .stLinkButton > a {
+            background: #2563EB !important;
+            color: white !important;
+            border: 1px solid rgba(255,255,255,0.10) !important;
+            border-radius: 12px !important;
+            font-weight: 800 !important;
+            box-shadow: 0 6px 16px rgba(37,99,235,0.25);
+        }
+
+        .stButton > button:hover,
+        .stLinkButton > a:hover {
+            background: #1D4ED8 !important;
+            color: white !important;
+            border-color: rgba(255,255,255,0.18) !important;
+        }
+
+        div[data-testid="stMetric"] {
+            background: #141A24;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px;
+            padding: 13px 14px;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.20);
+        }
+
+        div[data-testid="stMetricLabel"] {
+            color: #93A0B4 !important;
+        }
+
+        div[data-testid="stMetricValue"] {
+            color: #F8FAFC !important;
+        }
+
+        .stAlert {
+            border-radius: 16px;
+        }
+
+        [data-testid="stDataFrame"] {
+            background: #141A24;
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        hr {
+            border-color: rgba(255,255,255,0.08);
+        }
+    </style>
+    """,
+    unsafe_allow_html=True,
 )
+
+
+st.markdown(
+    """
+    <div class="main-header">
+        <div class="main-title">Earnings Momentum Screener</div>
+        <div class="main-subtitle">
+            Schwarzes Analysten-Dashboard · TradingView als Hauptquelle · FMP/Finnhub ergänzen Earnings-Termine
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
 
 st.sidebar.header("Steuerung")
 
@@ -53,7 +330,7 @@ tradingview_limit = st.sidebar.slider(
 show_chart_previews = st.sidebar.checkbox(
     "Chart-Vorschau anzeigen",
     value=True,
-    help="Zeigt pro Aktie eine kleine Chart-Bildvorschau.",
+    help="Zeigt pro Aktie eine kompakte Chart-Bildvorschau direkt in der Karte.",
 )
 
 max_cards = st.sidebar.slider(
@@ -115,24 +392,44 @@ def format_date_de(value):
         return str(value)
 
 
-def status_badge(status):
-    if status == "Treffer":
-        return "🟢 Treffer"
-    if status == "Knapp darunter":
-        return "🟡 Knapp darunter"
-    if status == "Schwach":
-        return "🔴 Schwach"
-    if status == "Keine Daten":
-        return "⚪ Keine Daten"
+def numeric_class(value):
+    try:
+        number = float(value)
 
-    return "⚪ Unter Filter"
+        if number > 0:
+            return "positive"
+
+        if number < 0:
+            return "negative"
+
+        return "muted"
+    except Exception:
+        return "muted"
+
+
+def status_badge_class(status):
+    if status == "Treffer":
+        return "badge-green"
+
+    if status == "Knapp darunter":
+        return "badge-yellow"
+
+    if status == "Schwach":
+        return "badge-red"
+
+    if status == "Keine Daten":
+        return ""
+
+    return "badge-blue"
 
 
 def rating_badge(rating):
     if rating == "A":
         return "A-Setup"
+
     if rating == "B":
         return "B-Setup"
+
     if rating == "C":
         return "C-Setup"
 
@@ -154,8 +451,6 @@ def prepare_display_df(df):
     display["Relativ zu QQQ"] = display["qqq_relative_proxy_pct"].apply(format_percent)
     display["Abstand 50-Tage-Linie"] = display["distance_sma_50_pct"].apply(format_percent)
     display["Abstand 200-Tage-Linie"] = display["distance_sma_200_pct"].apply(format_percent)
-    display["Statusanzeige"] = display["status"].apply(status_badge)
-    display["Ratinganzeige"] = display["rating"].apply(rating_badge)
 
     return display
 
@@ -171,33 +466,11 @@ def show_chart_preview(ticker):
 
     st.markdown(
         f"""
-        <div style="
-            max-width: 560px;
-            margin-top: 8px;
-            margin-bottom: 8px;
-            border: 1px solid rgba(0,0,0,0.10);
-            border-radius: 10px;
-            overflow: hidden;
-            background: #ffffff;
-        ">
-            <img
-                src="{url}"
-                alt="Chart {ticker}"
-                style="
-                    width: 560px;
-                    max-width: 100%;
-                    height: auto;
-                    display: block;
-                "
-            />
-        </div>
-        <div style="
-            font-size: 12px;
-            color: #666;
-            margin-top: -4px;
-            margin-bottom: 8px;
-        ">
-            Chart-Vorschau {ticker} · Für Detailanalyse TradingView öffnen
+        <div class="chart-wrap">
+            <img src="{url}" alt="Chart {ticker}" />
+            <div class="chart-caption">
+                Chart-Vorschau {ticker} · Für Detailanalyse den TradingView-Link öffnen
+            </div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -228,6 +501,24 @@ def show_market_regime(stats):
     col2.metric("QQQ 2M Proxy", format_percent(qqq_perf))
 
 
+def metric_box(label, value, css_class=""):
+    return f"""
+    <div class="metric-box">
+        <div class="metric-label">{label}</div>
+        <div class="metric-value {css_class}">{value}</div>
+    </div>
+    """
+
+
+def metric_box_small(label, value, css_class=""):
+    return f"""
+    <div class="metric-box">
+        <div class="metric-label">{label}</div>
+        <div class="metric-value-small {css_class}">{value}</div>
+    </div>
+    """
+
+
 def show_candidate_cards(df, title, empty_message, limit=20, show_charts=True):
     st.subheader(title)
 
@@ -247,50 +538,108 @@ def show_candidate_cards(df, title, empty_message, limit=20, show_charts=True):
         action = row.get("action", "")
         source = row.get("calendar_source", "n/a")
         data_source = row.get("data_source", "n/a")
+        status = row.get("status", "")
+        rating = row.get("rating", "Watch")
+        stage2_status = row.get("stage2_status", "n/a")
 
-        with st.container(border=True):
-            header_left, header_right = st.columns([4, 1])
+        card_class = "stock-card-hit" if status == "Treffer" else "stock-card-watch" if status == "Knapp darunter" else ""
 
-            with header_left:
-                st.markdown(f"### {company} ({ticker})")
-                st.caption(
-                    f"WKN: {wkn} · Börse: {exchange} · Earnings: {row['Datum']} · Quelle: {source}"
+        with st.container():
+            st.markdown(
+                f"""
+                <div class="stock-card {card_class}">
+                    <div class="stock-title">{company} ({ticker})</div>
+                    <div class="stock-meta">
+                        WKN: {wkn} · Börse: {exchange} · Earnings: {row['Datum']} · Quelle: {source}
+                    </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+            top_left, top_right = st.columns([2.1, 1])
+
+            with top_left:
+                c1, c2, c3 = st.columns(3)
+
+                with c1:
+                    st.markdown(
+                        metric_box("Aktueller Kurs", row["Kurs"]),
+                        unsafe_allow_html=True,
+                    )
+
+                with c2:
+                    st.markdown(
+                        metric_box(
+                            "2M Proxy",
+                            row["2M Proxy"],
+                            numeric_class(row.get("performance_2m_proxy_pct")),
+                        ),
+                        unsafe_allow_html=True,
+                    )
+
+                with c3:
+                    st.markdown(
+                        metric_box("Gesamtscore", f"{int(row['score'])} %"),
+                        unsafe_allow_html=True,
+                    )
+
+                c4, c5, c6 = st.columns(3)
+
+                with c4:
+                    st.markdown(
+                        metric_box_small(
+                            "Abstand 50-Tage-Linie",
+                            row["Abstand 50-Tage-Linie"],
+                            numeric_class(row.get("distance_sma_50_pct")),
+                        ),
+                        unsafe_allow_html=True,
+                    )
+
+                with c5:
+                    st.markdown(
+                        metric_box_small(
+                            "Abstand 200-Tage-Linie",
+                            row["Abstand 200-Tage-Linie"],
+                            numeric_class(row.get("distance_sma_200_pct")),
+                        ),
+                        unsafe_allow_html=True,
+                    )
+
+                with c6:
+                    st.markdown(
+                        metric_box_small("Stage 2", f"{int(row['stage2_score'])} %"),
+                        unsafe_allow_html=True,
+                    )
+
+                st.markdown(
+                    f"""
+                    <div class="badge-row">
+                        <span class="badge {status_badge_class(status)}">{status}</span>
+                        <span class="badge">{rating_badge(rating)}</span>
+                        <span class="badge">{stage2_status}</span>
+                        <span class="badge">Rel. SPY: {row['Relativ zu SPY']}</span>
+                        <span class="badge">Rel. QQQ: {row['Relativ zu QQQ']}</span>
+                        <span class="badge">1M: {row['1M']}</span>
+                        <span class="badge">3M: {row['3M']}</span>
+                    </div>
+                    <div class="info-line">
+                        <b>Aktion:</b> {action} · <b>Kursdaten:</b> {data_source}
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
                 )
 
-            with header_right:
+                if interpretation:
+                    st.info(interpretation)
+
                 if chart_url:
-                    st.link_button("Chart öffnen", chart_url, use_container_width=True)
+                    st.link_button("TradingView öffnen", chart_url, use_container_width=False)
 
-            k1, k2, k3, k4, k5 = st.columns(5)
-
-            k1.metric("Aktueller Kurs", row["Kurs"])
-            k2.metric("2M Proxy", row["2M Proxy"])
-            k3.metric("Abstand 50-Tage-Linie", row["Abstand 50-Tage-Linie"])
-            k4.metric("Abstand 200-Tage-Linie", row["Abstand 200-Tage-Linie"])
-            k5.metric("Gesamtscore", f"{int(row['score'])} %")
-
-            t1, t2, t3, t4, t5 = st.columns(5)
-
-            t1.write(f"**Status:** {row['Statusanzeige']}")
-            t2.write(f"**Rating:** {row['Ratinganzeige']}")
-            t3.write(f"**Stage 2:** {int(row['stage2_score'])} %")
-            t4.write(f"**Relativ zu SPY:** {row['Relativ zu SPY']}")
-            t5.write(f"**Relativ zu QQQ:** {row['Relativ zu QQQ']}")
-
-            p1, p2, p3 = st.columns(3)
-
-            p1.write(f"**1 Monat:** {row['1M']}")
-            p2.write(f"**3 Monate:** {row['3M']}")
-            p3.write(f"**Kursdaten:** {data_source}")
-
-            st.caption(f"Aktion: {action}")
-
-            if interpretation:
-                st.info(interpretation)
-
-            if show_charts:
-                with st.expander(f"Kompakte Chart-Vorschau {ticker}", expanded=False):
+            with top_right:
+                if show_charts:
                     show_chart_preview(ticker)
+
+            st.markdown("</div>", unsafe_allow_html=True)
 
 
 def show_compact_table(df, title):
@@ -314,7 +663,7 @@ def show_compact_table(df, title):
             "Abstand 200-Tage-Linie",
             "stage2_score",
             "score",
-            "Statusanzeige",
+            "status",
             "chart_url",
         ]
     ].rename(
@@ -324,7 +673,7 @@ def show_compact_table(df, title):
             "wkn": "WKN",
             "stage2_score": "Stage 2",
             "score": "Score",
-            "Statusanzeige": "Status",
+            "status": "Status",
             "chart_url": "Chart",
         }
     )
@@ -415,17 +764,20 @@ def show_detail_table(df):
 def show_explanation_box(min_performance):
     st.markdown(
         f"""
-### Lesart
-
-- **Treffer**: geschätzte 2M-Performance liegt bei mindestens **{min_performance:.0f} %**.
-- **2M-Performance Proxy**: wird aus TradingView 1M- und 3M-Performance abgeleitet.
-- **Abstand 50-Tage-Linie**: Abstand des aktuellen Kurses zur 50-Tage-Linie.
-- **Abstand 200-Tage-Linie**: Abstand des aktuellen Kurses zur 200-Tage-Linie.
-- **Relativ zu SPY / QQQ**: Aktie läuft stärker oder schwächer als Markt/Tech.
-- **Stage-2-Score**: technische Trendqualität über Kurs, 50-Tage-Linie, 200-Tage-Linie und Performance.
-- **Chart-Vorschau**: kleine Finviz-Bildvorschau. Für Detailanalyse immer den TradingView-Link öffnen.
-- **Wichtig**: Treffer sind Kandidaten für Detailanalyse, keine Kaufempfehlung.
-"""
+        <div class="section-card">
+            <h3>Lesart</h3>
+            <div class="info-line">
+                <b>Treffer:</b> geschätzte 2M-Performance liegt bei mindestens {min_performance:.0f} %.<br>
+                <b>2M-Performance Proxy:</b> wird aus TradingView 1M- und 3M-Performance abgeleitet.<br>
+                <b>Abstand 50-Tage-Linie:</b> Abstand des aktuellen Kurses zur 50-Tage-Linie.<br>
+                <b>Abstand 200-Tage-Linie:</b> Abstand des aktuellen Kurses zur 200-Tage-Linie.<br>
+                <b>Relativ zu SPY / QQQ:</b> Aktie läuft stärker oder schwächer als Markt/Tech.<br>
+                <b>Stage-2-Score:</b> technische Trendqualität über Kurs, 50-Tage-Linie, 200-Tage-Linie und Performance.<br>
+                <b>Chart-Vorschau:</b> kleine Finviz-Bildvorschau. Für Detailanalyse immer den TradingView-Link öffnen.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
 
