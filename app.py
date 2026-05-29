@@ -10,8 +10,8 @@ st.set_page_config(
 
 st.title("Earnings Momentum Screener")
 st.caption(
-    "Earnings-Kandidaten mit 2-Monats-Momentum. Ziel: Aktien finden, "
-    "die vor den Zahlen bereits institutionelle Stärke zeigen."
+    "Universe-basierter Earnings-Momentum-Screener aus FMP + Finnhub. "
+    "Ziel: auch unbekannte Aktien finden, die vor Quartalszahlen starkes Kursmomentum zeigen."
 )
 
 st.sidebar.header("Steuerung")
@@ -48,7 +48,7 @@ st.sidebar.divider()
 manual_symbol = st.sidebar.text_input(
     "Ticker manuell prüfen",
     value="DELL",
-    help="Prüft nur das Kursmomentum eines einzelnen Tickers, unabhängig vom Earnings-Kalender.",
+    help="Prüft nur das Kursmomentum eines einzelnen Tickers.",
 )
 
 manual_check = st.sidebar.button("Ticker prüfen")
@@ -63,6 +63,7 @@ def rename_columns(df):
             "isin": "ISIN",
             "exchange": "Börse",
             "earnings_date": "Earnings-Datum",
+            "calendar_source": "Earnings-Quelle",
             "current_close": "Aktueller Kurs",
             "performance_2m_pct": "2M-Performance %",
             "above_sma_20": "Über 20-Tage-Linie",
@@ -74,7 +75,7 @@ def rename_columns(df):
             "interpretation": "Interpretation",
             "action": "Aktion",
             "chart_url": "Chart öffnen",
-            "data_source": "Datenquelle",
+            "data_source": "Kursdatenquelle",
         }
     )
 
@@ -91,6 +92,7 @@ def show_table(df):
             "ISIN",
             "Börse",
             "Earnings-Datum",
+            "Earnings-Quelle",
             "2M-Performance %",
             "Aktueller Kurs",
             "Score",
@@ -99,7 +101,7 @@ def show_table(df):
             "Aktion",
             "Chart öffnen",
             "Interpretation",
-            "Datenquelle",
+            "Kursdatenquelle",
             "Über 20-Tage-Linie",
             "Über 50-Tage-Linie",
             "Abstand 50-Tage-Linie %",
@@ -137,11 +139,12 @@ def show_explanation_box(min_performance):
 
 - **Treffer**: Aktie liegt bei mindestens **{min_performance:.0f} %** 2-Monats-Performance.
 - **Knapp darunter**: Aktie liegt maximal 5 Prozentpunkte unter deinem Filter.
-- **Unter Filter**: Aktie berichtet Zahlen, aber der Kurs zeigt keine ausreichende Vorstärke.
+- **Unter Filter**: Aktie hat Earnings im Zeitraum, aber der Kurs zeigt keine ausreichende Vorstärke.
 - **Schwach**: negatives Momentum, für diesen Ansatz uninteressant.
-- **Chart öffnen**: öffnet den TradingView-Chart zur visuellen Prüfung.
-- **WKN**: wird angezeigt, wenn sie in der lokalen Mapping-Liste hinterlegt ist.
-- **Datenquelle**: zeigt, ob die Kursdaten von FMP oder vom Fallback Stooq kommen.
+- **Earnings-Quelle** zeigt, ob die Aktie aus FMP, Finnhub oder beiden Quellen kommt.
+- **Chart öffnen** öffnet den TradingView-Chart zur visuellen Prüfung.
+- **WKN** wird angezeigt, wenn sie in der lokalen Mapping-Liste hinterlegt ist.
+- **Kursdatenquelle** zeigt, ob die Kursdaten von FMP oder vom Fallback Stooq kommen.
 """
     )
 
@@ -157,8 +160,7 @@ if manual_check:
 
     if manual_df is None or manual_df.empty:
         st.error(
-            "Für diesen Ticker konnten keine ausreichenden Kursdaten geladen werden. "
-            "Möglicherweise ist der Ticker falsch, die API blockiert die Abfrage oder es liegen zu wenige Kursdaten vor."
+            "Für diesen Ticker konnten keine ausreichenden Kursdaten geladen werden."
         )
     else:
         row = manual_df.iloc[0]
@@ -184,14 +186,14 @@ if manual_check:
 
 if not run_now:
     st.info(
-        "Klicke links auf **Screener jetzt ausführen**, um aktuelle Earnings-Kandidaten zu laden. "
-        "Oder prüfe unten links einen einzelnen Ticker manuell."
+        "Klicke links auf **Screener jetzt ausführen**, um alle Earnings-Kandidaten "
+        "aus FMP + Finnhub zu laden."
     )
     show_explanation_box(min_performance)
     st.stop()
 
 
-with st.spinner("Screener läuft. Earnings-Kalender und Kursdaten werden geladen..."):
+with st.spinner("Screener läuft. Earnings-Kalender von FMP + Finnhub und Kursdaten werden geladen..."):
     hits_df, all_df, stats = run_screen(
         lookback_days=lookback_days,
         forward_days=forward_days,
@@ -217,25 +219,26 @@ else:
         )
     else:
         st.error(
-            "Es wurden keine verwertbaren Kandidaten gefunden. Entweder liefert der Earnings-Kalender wenig Daten "
-            "oder es fehlen Kursdaten."
+            "Es wurden keine verwertbaren Kandidaten gefunden. "
+            "Entweder liefern die Kalender keine Daten oder es fehlen Kursdaten."
         )
 
 
-col1, col2, col3, col4, col5 = st.columns(5)
+col1, col2, col3, col4, col5, col6 = st.columns(6)
 
-col1.metric("Earnings gefunden", stats["earnings_found"])
-col2.metric("Mit Kursdaten geprüft", stats["stocks_with_price_data"])
-col3.metric("Treffer", stats["hits"])
-col4.metric("Momentum-Filter", f">{stats['min_performance_2m']:.0f} %")
+col1.metric("FMP Earnings", stats["fmp_earnings_found"])
+col2.metric("Finnhub Earnings", stats["finnhub_earnings_found"])
+col3.metric("Kandidaten gesamt", stats["candidates_total"])
+col4.metric("Mit Kursdaten geprüft", stats["stocks_with_price_data"])
+col5.metric("Treffer", stats["hits"])
+col6.metric("Momentum-Filter", f">{stats['min_performance_2m']:.0f} %")
 
 if stats["best_symbol"] is not None:
-    col5.metric(
+    st.metric(
         "Bestes Momentum",
-        f"{stats['best_symbol']} {stats['best_performance']:.2f} %",
+        f"{stats['best_company']} ({stats['best_symbol']})",
+        f"{stats['best_performance']:.2f} %",
     )
-else:
-    col5.metric("Bestes Momentum", "n/a")
 
 st.caption(
     f"Zeitraum: {stats['start_date']} bis {stats['end_date']} · "
@@ -273,7 +276,16 @@ status_filter = st.multiselect(
     default=sorted(display_all["Status"].unique()),
 )
 
-filtered_all = display_all[display_all["Status"].isin(status_filter)]
+source_filter = st.multiselect(
+    "Earnings-Quelle filtern",
+    options=sorted(display_all["Earnings-Quelle"].unique()),
+    default=sorted(display_all["Earnings-Quelle"].unique()),
+)
+
+filtered_all = display_all[
+    display_all["Status"].isin(status_filter)
+    & display_all["Earnings-Quelle"].isin(source_filter)
+]
 
 show_table(filtered_all)
 
