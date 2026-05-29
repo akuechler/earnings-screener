@@ -1,7 +1,5 @@
 import os
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, datetime, timedelta
-from io import StringIO
 
 import pandas as pd
 import requests
@@ -29,21 +27,15 @@ FMP_API_KEY = get_secret("FMP_API_KEY")
 FINNHUB_API_KEY = get_secret("FINNHUB_API_KEY")
 
 if not FMP_API_KEY:
-    raise RuntimeError(
-        "FMP_API_KEY fehlt. Lege ihn in GitHub Actions und in Streamlit Secrets an."
-    )
+    raise RuntimeError("FMP_API_KEY fehlt.")
 
 if not FINNHUB_API_KEY:
-    raise RuntimeError(
-        "FINNHUB_API_KEY fehlt. Lege ihn in GitHub Actions und in Streamlit Secrets an."
-    )
+    raise RuntimeError("FINNHUB_API_KEY fehlt.")
 
 
 DATA_DIR = "data"
-FILTERED_FILE = os.path.join(DATA_DIR, "earnings_momentum_screen.csv")
-ALL_FILE = os.path.join(DATA_DIR, "earnings_momentum_all.csv")
-
-REQUEST_TIMEOUT = 12
+FILTERED_FILE = f"{DATA_DIR}/earnings_momentum_screen.csv"
+ALL_FILE = f"{DATA_DIR}/earnings_momentum_all.csv"
 
 WKN_MAP = {
     "DELL": "A2N6WP",
@@ -153,14 +145,15 @@ COLUMNS = [
     "earnings_date",
     "calendar_source",
     "current_close",
-    "performance_2m_pct",
-    "spy_relative_2m_pct",
-    "qqq_relative_2m_pct",
-    "above_sma_20",
+    "performance_1m_pct",
+    "performance_3m_pct",
+    "performance_2m_proxy_pct",
+    "spy_relative_proxy_pct",
+    "qqq_relative_proxy_pct",
     "above_sma_50",
-    "above_sma_150",
     "above_sma_200",
     "distance_sma_50_pct",
+    "distance_sma_200_pct",
     "stage2_score",
     "stage2_status",
     "score",
@@ -171,12 +164,6 @@ COLUMNS = [
     "chart_url",
     "data_source",
 ]
-
-
-def get_json(url: str):
-    response = requests.get(url, timeout=REQUEST_TIMEOUT)
-    response.raise_for_status()
-    return response.json()
 
 
 def normalize_symbol(symbol):
@@ -192,6 +179,31 @@ def normalize_symbol(symbol):
         symbol = symbol.split(".")[0]
 
     return symbol
+
+
+def normalize_exchange(exchange):
+    if not exchange:
+        return "NASDAQ"
+
+    exchange = str(exchange).upper().strip()
+
+    if "NASDAQ" in exchange:
+        return "NASDAQ"
+
+    if "NYSE" in exchange or "NEW YORK" in exchange:
+        return "NYSE"
+
+    if "AMEX" in exchange:
+        return "AMEX"
+
+    return exchange
+
+
+def tradingview_url(symbol, exchange):
+    symbol = normalize_symbol(symbol)
+    exchange = normalize_exchange(exchange)
+
+    return f"https://www.tradingview.com/chart/?symbol={exchange}%3A{symbol}"
 
 
 def parse_any_date(value):
@@ -220,6 +232,22 @@ def parse_any_date(value):
         return None
 
 
+def safe_number(value):
+    try:
+        if value is None or pd.isna(value):
+            return None
+
+        return float(value)
+    except Exception:
+        return None
+
+
+def get_json(url):
+    response = requests.get(url, timeout=12)
+    response.raise_for_status()
+    return response.json()
+
+
 def get_fmp_earnings_calendar(start_date, end_date):
     url = (
         "https://financialmodelingprep.com/stable/earnings-calendar"
@@ -229,13 +257,10 @@ def get_fmp_earnings_calendar(start_date, end_date):
     try:
         data = get_json(url)
     except Exception as error:
-        print(f"FMP Earnings Calendar Fehler: {error}")
+        print(f"FMP Earnings Fehler: {error}")
         return []
 
-    if isinstance(data, list):
-        return data
-
-    return []
+    return data if isinstance(data, list) else []
 
 
 def get_finnhub_earnings_calendar(start_date, end_date):
@@ -247,7 +272,7 @@ def get_finnhub_earnings_calendar(start_date, end_date):
     try:
         data = get_json(url)
     except Exception as error:
-        print(f"Finnhub Earnings Calendar Fehler: {error}")
+        print(f"Finnhub Earnings Fehler: {error}")
         return []
 
     if isinstance(data, dict):
@@ -256,36 +281,49 @@ def get_finnhub_earnings_calendar(start_date, end_date):
     return []
 
 
-def get_tradingview_earnings_calendar(start_date, end_date, limit=3000):
+@st.cache_data(ttl=1800, show_spinner=False)
+def get_tradingview_universe(limit=8000):
     if Query is None:
-        return [], "tradingview-screener ist nicht installiert oder konnte nicht importiert werden."
+        return pd.DataFrame(), "tradingview-screener ist nicht installiert."
+
+    selected_fields = [
+        "name",
+        "description",
+        "exchange",
+        "close",
+        "market_cap_basic",
+        "Perf.1M",
+        "Perf.3M",
+        "Perf.6M",
+        "Perf.YTD",
+        "SMA50",
+        "SMA200",
+        "earnings_release_date",
+        "earnings_release_next_date",
+    ]
 
     try:
-        _, df = (
-            Query()
-            .select(
-                "name",
-                "description",
-                "exchange",
-                "market_cap_basic",
-                "close",
-                "earnings_release_date",
-                "earnings_release_next_date",
-            )
-            .limit(limit)
-            .get_scanner_data()
-        )
+        _, df = Query().select(*selected_fields).limit(limit).get_scanner_data()
     except Exception as error:
-        return [], f"TradingView Screener Fehler: {error}"
+        return pd.DataFrame(), f"TradingView Screener Fehler: {error}"
 
-    if df is None or df.empty:
-        return [], None
+    if df is None:
+        return pd.DataFrame(), None
+
+    return df, None
+
+
+def get_tradingview_earnings_candidates(start_date, end_date, limit=8000):
+    df, error = get_tradingview_universe(limit=limit)
+
+    if df.empty:
+        return [], error
 
     results = []
 
     for _, row in df.iterrows():
-        raw_ticker = row.get("ticker")
-        symbol = normalize_symbol(raw_ticker or row.get("name"))
+        raw_ticker = row.get("ticker") or row.get("name")
+        symbol = normalize_symbol(raw_ticker)
 
         if not symbol:
             continue
@@ -293,450 +331,316 @@ def get_tradingview_earnings_calendar(start_date, end_date, limit=3000):
         company = (
             row.get("description")
             or COMPANY_FALLBACK_MAP.get(symbol)
-            or row.get("name")
             or symbol
         )
 
-        exchange = row.get("exchange") or EXCHANGE_FALLBACK_MAP.get(symbol) or "NASDAQ"
+        exchange = normalize_exchange(row.get("exchange") or EXCHANGE_FALLBACK_MAP.get(symbol))
 
         recent_date = parse_any_date(row.get("earnings_release_date"))
-        upcoming_date = parse_any_date(row.get("earnings_release_next_date"))
+        next_date = parse_any_date(row.get("earnings_release_next_date"))
 
-        selected_dates = []
+        used_date = None
+        source = None
 
         if recent_date and start_date <= recent_date <= end_date:
-            selected_dates.append(("TradingView Recent Earnings", recent_date))
+            used_date = recent_date
+            source = "TradingView Recent"
 
-        if upcoming_date and start_date <= upcoming_date <= end_date:
-            selected_dates.append(("TradingView Upcoming Earnings", upcoming_date))
+        if next_date and start_date <= next_date <= end_date:
+            used_date = next_date
+            source = "TradingView Upcoming"
 
-        for source, earnings_date in selected_dates:
-            results.append(
-                {
-                    "symbol": symbol,
-                    "company": company,
-                    "exchange": exchange,
-                    "date": str(earnings_date),
-                    "source": source,
-                }
-            )
-
-    return results, None
-
-
-def add_or_merge_candidate(candidates, symbol, company, exchange, earnings_date, source):
-    symbol = normalize_symbol(symbol)
-
-    if not symbol:
-        return
-
-    if symbol in candidates:
-        old_source = candidates[symbol]["calendar_source"]
-
-        if source not in old_source:
-            candidates[symbol]["calendar_source"] = f"{old_source} + {source}"
-
-        if candidates[symbol]["earnings_date"] in ["n/a", None, ""]:
-            candidates[symbol]["earnings_date"] = earnings_date
-
-        if candidates[symbol]["company"] in ["n/a", symbol, None, ""]:
-            candidates[symbol]["company"] = company or symbol
-
-        return
-
-    candidates[symbol] = {
-        "symbol": symbol,
-        "company": company or COMPANY_FALLBACK_MAP.get(symbol, symbol),
-        "exchange": exchange or EXCHANGE_FALLBACK_MAP.get(symbol, "NASDAQ"),
-        "earnings_date": earnings_date or "n/a",
-        "calendar_source": source,
-    }
-
-
-def build_candidates_from_calendars(start_date, end_date, use_tradingview=True, tradingview_limit=3000):
-    candidates = {}
-
-    fmp_earnings = get_fmp_earnings_calendar(start_date, end_date)
-    finnhub_earnings = get_finnhub_earnings_calendar(start_date, end_date)
-    tradingview_earnings = []
-    tradingview_error = None
-
-    if use_tradingview:
-        tradingview_earnings, tradingview_error = get_tradingview_earnings_calendar(
-            start_date,
-            end_date,
-            limit=tradingview_limit,
-        )
-
-    skipped_no_symbol = 0
-
-    for item in fmp_earnings:
-        symbol = normalize_symbol(item.get("symbol"))
-
-        if not symbol:
-            skipped_no_symbol += 1
+        if used_date is None:
             continue
 
-        company = (
-            item.get("companyName")
-            or item.get("name")
-            or item.get("company")
-            or COMPANY_FALLBACK_MAP.get(symbol)
-            or symbol
-        )
+        perf_1m = safe_number(row.get("Perf.1M"))
+        perf_3m = safe_number(row.get("Perf.3M"))
+        perf_6m = safe_number(row.get("Perf.6M"))
+        close = safe_number(row.get("close"))
+        sma50 = safe_number(row.get("SMA50"))
+        sma200 = safe_number(row.get("SMA200"))
+        market_cap = safe_number(row.get("market_cap_basic"))
 
-        earnings_date = item.get("date") or item.get("fiscalDateEnding") or "n/a"
-
-        add_or_merge_candidate(
-            candidates=candidates,
-            symbol=symbol,
-            company=company,
-            exchange=EXCHANGE_FALLBACK_MAP.get(symbol, "NASDAQ"),
-            earnings_date=earnings_date,
-            source="FMP",
-        )
-
-    for item in finnhub_earnings:
-        symbol = normalize_symbol(item.get("symbol"))
-
-        if not symbol:
-            skipped_no_symbol += 1
-            continue
-
-        add_or_merge_candidate(
-            candidates=candidates,
-            symbol=symbol,
-            company=COMPANY_FALLBACK_MAP.get(symbol, symbol),
-            exchange=EXCHANGE_FALLBACK_MAP.get(symbol, "NASDAQ"),
-            earnings_date=item.get("date") or "n/a",
-            source="Finnhub",
-        )
-
-    for item in tradingview_earnings:
-        symbol = normalize_symbol(item.get("symbol"))
-
-        if not symbol:
-            skipped_no_symbol += 1
-            continue
-
-        add_or_merge_candidate(
-            candidates=candidates,
-            symbol=symbol,
-            company=item.get("company") or COMPANY_FALLBACK_MAP.get(symbol, symbol),
-            exchange=item.get("exchange") or EXCHANGE_FALLBACK_MAP.get(symbol, "NASDAQ"),
-            earnings_date=item.get("date") or "n/a",
-            source="TradingView",
-        )
-
-    return (
-        candidates,
-        fmp_earnings,
-        finnhub_earnings,
-        tradingview_earnings,
-        tradingview_error,
-        skipped_no_symbol,
-    )
-
-
-@st.cache_data(ttl=86400, show_spinner=False)
-def get_company_profile_cached(symbol):
-    symbol = normalize_symbol(symbol)
-
-    fmp_url = (
-        "https://financialmodelingprep.com/stable/profile"
-        f"?symbol={symbol}&apikey={FMP_API_KEY}"
-    )
-
-    try:
-        data = get_json(fmp_url)
-
-        if isinstance(data, list) and data:
-            item = data[0]
-        elif isinstance(data, dict):
-            item = data
-        else:
-            item = {}
-
-        if item:
-            return {
-                "company": (
-                    item.get("companyName")
-                    or item.get("companyNameLong")
-                    or item.get("name")
-                    or COMPANY_FALLBACK_MAP.get(symbol)
-                    or symbol
-                ),
-                "isin": item.get("isin") or item.get("ISIN") or "n/a",
-                "exchange": (
-                    item.get("exchangeShortName")
-                    or item.get("exchange")
-                    or EXCHANGE_FALLBACK_MAP.get(symbol)
-                    or "NASDAQ"
-                ),
+        results.append(
+            {
+                "symbol": symbol,
+                "company": company,
+                "exchange": exchange,
+                "earnings_date": str(used_date),
+                "calendar_source": source,
+                "current_close": close,
+                "performance_1m_pct": perf_1m,
+                "performance_3m_pct": perf_3m,
+                "performance_6m_pct": perf_6m,
+                "sma50": sma50,
+                "sma200": sma200,
+                "market_cap": market_cap,
+                "raw_source": "TradingView",
             }
-    except Exception:
-        pass
+        )
 
-    finnhub_url = (
-        "https://finnhub.io/api/v1/stock/profile2"
-        f"?symbol={symbol}&token={FINNHUB_API_KEY}"
-    )
+    return results, error
 
-    try:
-        data = get_json(finnhub_url)
 
-        if isinstance(data, dict) and data:
-            return {
-                "company": data.get("name") or COMPANY_FALLBACK_MAP.get(symbol) or symbol,
-                "isin": data.get("isin") or "n/a",
-                "exchange": data.get("exchange") or EXCHANGE_FALLBACK_MAP.get(symbol) or "NASDAQ",
+def get_fmp_finnhub_candidates(start_date, end_date):
+    fmp = get_fmp_earnings_calendar(start_date, end_date)
+    finnhub = get_finnhub_earnings_calendar(start_date, end_date)
+
+    candidates = []
+
+    for item in fmp:
+        symbol = normalize_symbol(item.get("symbol"))
+
+        if not symbol:
+            continue
+
+        candidates.append(
+            {
+                "symbol": symbol,
+                "company": item.get("companyName") or item.get("name") or item.get("company") or COMPANY_FALLBACK_MAP.get(symbol) or symbol,
+                "exchange": EXCHANGE_FALLBACK_MAP.get(symbol, "NASDAQ"),
+                "earnings_date": item.get("date") or "n/a",
+                "calendar_source": "FMP",
+                "current_close": None,
+                "performance_1m_pct": None,
+                "performance_3m_pct": None,
+                "performance_6m_pct": None,
+                "sma50": None,
+                "sma200": None,
+                "market_cap": None,
+                "raw_source": "FMP",
             }
-    except Exception:
-        pass
+        )
 
-    return {
-        "company": COMPANY_FALLBACK_MAP.get(symbol) or symbol,
-        "isin": "n/a",
-        "exchange": EXCHANGE_FALLBACK_MAP.get(symbol) or "NASDAQ",
-    }
+    for item in finnhub:
+        symbol = normalize_symbol(item.get("symbol"))
 
+        if not symbol:
+            continue
 
-@st.cache_data(ttl=3600, show_spinner=False)
-def get_historical_prices_from_fmp_cached(symbol):
-    symbol = normalize_symbol(symbol)
+        candidates.append(
+            {
+                "symbol": symbol,
+                "company": COMPANY_FALLBACK_MAP.get(symbol) or symbol,
+                "exchange": EXCHANGE_FALLBACK_MAP.get(symbol, "NASDAQ"),
+                "earnings_date": item.get("date") or "n/a",
+                "calendar_source": "Finnhub",
+                "current_close": None,
+                "performance_1m_pct": None,
+                "performance_3m_pct": None,
+                "performance_6m_pct": None,
+                "sma50": None,
+                "sma200": None,
+                "market_cap": None,
+                "raw_source": "Finnhub",
+            }
+        )
 
-    url = (
-        "https://financialmodelingprep.com/stable/historical-price-eod/full"
-        f"?symbol={symbol}&apikey={FMP_API_KEY}"
-    )
-
-    data = get_json(url)
-
-    if not data:
-        return None
-
-    df = pd.DataFrame(data)
-
-    if "date" not in df.columns or "close" not in df.columns:
-        return None
-
-    df["date"] = pd.to_datetime(df["date"])
-    df["close"] = pd.to_numeric(df["close"], errors="coerce")
-    df = df.dropna(subset=["date", "close"])
-    df = df.sort_values("date")
-
-    if df.empty:
-        return None
-
-    df["data_source"] = "FMP"
-
-    return df
+    return candidates, fmp, finnhub
 
 
-@st.cache_data(ttl=3600, show_spinner=False)
-def get_historical_prices_from_stooq_cached(symbol):
-    symbol = normalize_symbol(symbol).lower()
+def merge_candidates(*candidate_lists):
+    merged = {}
 
-    url = f"https://stooq.com/q/d/l/?s={symbol}.us&i=d"
+    for candidate_list in candidate_lists:
+        for item in candidate_list:
+            symbol = normalize_symbol(item.get("symbol"))
 
-    response = requests.get(url, timeout=REQUEST_TIMEOUT)
-    response.raise_for_status()
+            if not symbol:
+                continue
 
-    text = response.text.strip()
+            if symbol not in merged:
+                merged[symbol] = dict(item)
+                continue
 
-    if not text or "No data" in text:
-        return None
+            old = merged[symbol]
 
-    df = pd.read_csv(StringIO(text))
+            old_source = old.get("calendar_source", "")
+            new_source = item.get("calendar_source", "")
 
-    if "Date" not in df.columns or "Close" not in df.columns:
-        return None
+            if new_source and new_source not in old_source:
+                old["calendar_source"] = f"{old_source} + {new_source}"
 
-    df = df.rename(columns={"Date": "date", "Close": "close"})
-    df["date"] = pd.to_datetime(df["date"])
-    df["close"] = pd.to_numeric(df["close"], errors="coerce")
-    df = df.dropna(subset=["date", "close"])
-    df = df.sort_values("date")
+            for field in [
+                "company",
+                "exchange",
+                "earnings_date",
+                "current_close",
+                "performance_1m_pct",
+                "performance_3m_pct",
+                "performance_6m_pct",
+                "sma50",
+                "sma200",
+                "market_cap",
+            ]:
+                if old.get(field) in [None, "", "n/a"]:
+                    old[field] = item.get(field)
 
-    if df.empty:
-        return None
-
-    df["data_source"] = "Stooq"
-
-    return df
+    return list(merged.values())
 
 
-def get_historical_prices(symbol):
-    symbol = normalize_symbol(symbol)
+def estimate_2m_from_1m_3m(perf_1m, perf_3m):
+    if perf_1m is not None and perf_3m is not None:
+        return round((perf_1m + perf_3m) / 2, 2)
 
-    try:
-        df = get_historical_prices_from_fmp_cached(symbol)
+    if perf_3m is not None:
+        return round(perf_3m * (2 / 3), 2)
 
-        if df is not None and len(df) >= 220:
-            return df
-    except Exception as error:
-        print(f"FMP-Kursdaten fehlgeschlagen bei {symbol}: {error}")
-
-    try:
-        df = get_historical_prices_from_stooq_cached(symbol)
-
-        if df is not None and len(df) >= 220:
-            return df
-    except Exception as error:
-        print(f"Stooq-Kursdaten fehlgeschlagen bei {symbol}: {error}")
+    if perf_1m is not None:
+        return round(perf_1m, 2)
 
     return None
 
 
-def calculate_price_performance(df, periods):
-    if df is None or len(df) <= periods:
+def get_index_performance_from_tradingview(symbol):
+    df, _ = get_tradingview_universe(limit=10000)
+
+    if df.empty:
         return None
 
-    current_close = float(df.iloc[-1]["close"])
-    past_close = float(df.iloc[-periods - 1]["close"])
+    candidates = df[df["name"].astype(str).str.upper() == symbol.upper()]
 
-    if past_close <= 0:
+    if candidates.empty and "ticker" in df.columns:
+        candidates = df[df["ticker"].astype(str).str.upper().str.endswith(f":{symbol.upper()}")]
+
+    if candidates.empty:
         return None
 
-    return (current_close / past_close - 1) * 100
+    row = candidates.iloc[0]
+
+    perf_1m = safe_number(row.get("Perf.1M"))
+    perf_3m = safe_number(row.get("Perf.3M"))
+
+    return estimate_2m_from_1m_3m(perf_1m, perf_3m)
 
 
-def calculate_stage2(df, stock_vs_spy_2m):
-    if df is None or len(df) < 220:
+def calculate_market_regime():
+    spy_perf = get_index_performance_from_tradingview("SPY")
+    qqq_perf = get_index_performance_from_tradingview("QQQ")
+
+    if spy_perf is None and qqq_perf is None:
         return {
-            "stage2_score": 0,
-            "stage2_status": "zu wenig Daten",
-            "above_sma_150": False,
-            "above_sma_200": False,
+            "regime": "unbekannt",
+            "interpretation": "SPY/QQQ konnten nicht aus TradingView gelesen werden.",
+            "spy_perf_2m": None,
+            "qqq_perf_2m": None,
         }
 
-    close = df["close"]
-    current_close = float(close.iloc[-1])
+    if (spy_perf is not None and spy_perf > 5) and (qqq_perf is not None and qqq_perf > 5):
+        regime = "grün"
+        interpretation = "Marktumfeld unterstützt Momentum-Setups."
+    elif (spy_perf is not None and spy_perf < -3) or (qqq_perf is not None and qqq_perf < -3):
+        regime = "rot"
+        interpretation = "Marktumfeld ist riskant. Breakouts können schneller scheitern."
+    else:
+        regime = "neutral"
+        interpretation = "Marktumfeld ist gemischt. Positionsgröße und Risikomanagement wichtiger."
 
-    sma50 = close.tail(50).mean()
-    sma150 = close.tail(150).mean()
-    sma200 = close.tail(200).mean()
-    sma200_20_days_ago = close.iloc[-220:-20].mean()
+    return {
+        "regime": regime,
+        "interpretation": interpretation,
+        "spy_perf_2m": round(spy_perf, 2) if spy_perf is not None else None,
+        "qqq_perf_2m": round(qqq_perf, 2) if qqq_perf is not None else None,
+    }
 
-    high_52w = close.tail(252).max() if len(close) >= 252 else close.max()
-    low_52w = close.tail(252).min() if len(close) >= 252 else close.min()
 
+def calculate_stage2_score(close, sma50, sma200, perf_3m, perf_6m, spy_relative):
     checks = {
-        "price_above_sma50": current_close > sma50,
-        "price_above_sma150": current_close > sma150,
-        "price_above_sma200": current_close > sma200,
-        "sma50_above_sma150": sma50 > sma150,
-        "sma150_above_sma200": sma150 > sma200,
-        "sma200_rising": sma200 > sma200_20_days_ago,
-        "price_near_high": current_close >= high_52w * 0.75,
-        "price_above_low": current_close >= low_52w * 1.30,
-        "outperforming_spy": stock_vs_spy_2m is not None and stock_vs_spy_2m > 0,
+        "price_above_sma50": close is not None and sma50 is not None and close > sma50,
+        "price_above_sma200": close is not None and sma200 is not None and close > sma200,
+        "sma50_above_sma200": sma50 is not None and sma200 is not None and sma50 > sma200,
+        "perf_3m_positive": perf_3m is not None and perf_3m > 0,
+        "perf_6m_positive": perf_6m is not None and perf_6m > 0,
+        "perf_3m_strong": perf_3m is not None and perf_3m > 10,
+        "outperforming_spy": spy_relative is not None and spy_relative > 0,
     }
 
     passed = sum(1 for value in checks.values() if value)
-    stage2_score = round((passed / len(checks)) * 100, 0)
+    score = round((passed / len(checks)) * 100, 0)
 
-    if stage2_score >= 80:
-        stage2_status = "Stage 2 stark"
-    elif stage2_score >= 60:
-        stage2_status = "Stage 2 möglich"
-    elif stage2_score >= 40:
-        stage2_status = "Trend gemischt"
+    if score >= 80:
+        status = "Stage 2 stark"
+    elif score >= 60:
+        status = "Stage 2 möglich"
+    elif score >= 40:
+        status = "Trend gemischt"
     else:
-        stage2_status = "kein Stage-2-Trend"
+        status = "kein Stage-2-Trend"
 
-    return {
-        "stage2_score": stage2_score,
-        "stage2_status": stage2_status,
-        "above_sma_150": checks["price_above_sma150"],
-        "above_sma_200": checks["price_above_sma200"],
-    }
+    return int(score), status
 
 
-def calculate_momentum(df, spy_perf_2m=None, qqq_perf_2m=None):
-    if df is None or len(df) < 220:
-        return None
+def classify_stock(perf_2m, min_perf, spy_relative, stage2_score):
+    if perf_2m is None:
+        return "Keine Daten", "Keine verwertbare Performance aus TradingView.", "Ignorieren"
 
-    current_close = float(df.iloc[-1]["close"])
+    if perf_2m >= min_perf and spy_relative is not None and spy_relative > 0 and stage2_score >= 60:
+        return (
+            "Treffer",
+            "Momentum-Setup mit relativer Stärke und akzeptabler Trendqualität.",
+            "Detailanalyse prüfen",
+        )
 
-    performance_2m = calculate_price_performance(df, 42)
+    if perf_2m >= min_perf:
+        return (
+            "Treffer",
+            "Aktie erfüllt den Momentum-Filter. Relative Stärke und Trendqualität prüfen.",
+            "Detailanalyse prüfen",
+        )
 
-    if performance_2m is None:
-        return None
+    if perf_2m >= min_perf - 5:
+        return (
+            "Knapp darunter",
+            "Nahe am Momentum-Filter, aber noch kein klares Setup.",
+            "Watchlist",
+        )
 
-    close = df["close"]
+    if perf_2m >= 5:
+        return (
+            "Unter Filter",
+            "Positives Momentum, aber zu schwach für dein Setup.",
+            "Nur beobachten",
+        )
 
-    sma20 = close.tail(20).mean()
-    sma50 = close.tail(50).mean()
-    sma150 = close.tail(150).mean()
-    sma200 = close.tail(200).mean()
+    if perf_2m >= 0:
+        return (
+            "Unter Filter",
+            "Kaum Momentum. Kein klarer institutioneller Vorlauf.",
+            "Ignorieren",
+        )
 
-    if sma50 <= 0:
-        return None
-
-    spy_relative_2m = None
-    qqq_relative_2m = None
-
-    if spy_perf_2m is not None:
-        spy_relative_2m = performance_2m - spy_perf_2m
-
-    if qqq_perf_2m is not None:
-        qqq_relative_2m = performance_2m - qqq_perf_2m
-
-    stage2 = calculate_stage2(df, spy_relative_2m)
-
-    data_source = "n/a"
-
-    if "data_source" in df.columns:
-        data_source = str(df.iloc[-1]["data_source"])
-
-    return {
-        "current_close": current_close,
-        "performance_2m": performance_2m,
-        "spy_relative_2m": spy_relative_2m,
-        "qqq_relative_2m": qqq_relative_2m,
-        "above_sma_20": current_close > sma20,
-        "above_sma_50": current_close > sma50,
-        "above_sma_150": current_close > sma150,
-        "above_sma_200": current_close > sma200,
-        "distance_sma_50": (current_close / sma50 - 1) * 100,
-        "stage2_score": stage2["stage2_score"],
-        "stage2_status": stage2["stage2_status"],
-        "data_source": data_source,
-    }
+    return (
+        "Schwach",
+        "Negatives Momentum. Für diesen Ansatz uninteressant.",
+        "Ignorieren",
+    )
 
 
-def score_stock(momentum):
+def score_stock(perf_2m, spy_relative, qqq_relative, stage2_score, close, sma50, sma200):
     score = 0
 
-    if momentum["performance_2m"] >= 15:
+    if perf_2m is not None and perf_2m >= 15:
         score += 25
 
-    if momentum["performance_2m"] >= 25:
+    if perf_2m is not None and perf_2m >= 25:
         score += 10
 
-    if momentum["above_sma_20"]:
+    if spy_relative is not None and spy_relative > 0:
+        score += 15
+
+    if qqq_relative is not None and qqq_relative > 0:
         score += 10
 
-    if momentum["above_sma_50"]:
+    if close is not None and sma50 is not None and close > sma50:
         score += 10
 
-    if momentum["above_sma_150"]:
+    if close is not None and sma200 is not None and close > sma200:
         score += 10
 
-    if momentum["above_sma_200"]:
-        score += 10
-
-    if momentum["spy_relative_2m"] is not None and momentum["spy_relative_2m"] > 0:
-        score += 10
-
-    if momentum["qqq_relative_2m"] is not None and momentum["qqq_relative_2m"] > 0:
-        score += 5
-
-    if momentum["stage2_score"] >= 80:
-        score += 10
-    elif momentum["stage2_score"] >= 60:
-        score += 5
+    if stage2_score >= 80:
+        score += 15
+    elif stage2_score >= 60:
+        score += 8
 
     score = min(score, 100)
 
@@ -752,169 +656,92 @@ def score_stock(momentum):
     return score, rating
 
 
-def classify_stock(performance, min_performance, spy_relative, stage2_score):
-    if performance >= min_performance and spy_relative is not None and spy_relative > 0 and stage2_score >= 60:
-        return (
-            "Treffer",
-            "Momentum-Setup mit relativer Stärke und akzeptabler Trendqualität.",
-            "Detailanalyse prüfen",
-        )
+def build_result_row(candidate, min_performance, spy_perf, qqq_perf):
+    symbol = normalize_symbol(candidate.get("symbol"))
+    company = candidate.get("company") or COMPANY_FALLBACK_MAP.get(symbol) or symbol
+    exchange = normalize_exchange(candidate.get("exchange") or EXCHANGE_FALLBACK_MAP.get(symbol))
 
-    if performance >= min_performance:
-        return (
-            "Treffer",
-            "Aktie erfüllt den Momentum-Filter, aber relative Stärke oder Stage-2-Qualität sollte geprüft werden.",
-            "Detailanalyse prüfen",
-        )
+    perf_1m = safe_number(candidate.get("performance_1m_pct"))
+    perf_3m = safe_number(candidate.get("performance_3m_pct"))
+    perf_6m = safe_number(candidate.get("performance_6m_pct"))
+    perf_2m = estimate_2m_from_1m_3m(perf_1m, perf_3m)
 
-    if performance >= min_performance - 5:
-        return (
-            "Knapp darunter",
-            "Aktie liegt nahe am Momentum-Filter, aber erfüllt das Setup noch nicht sauber.",
-            "Watchlist",
-        )
+    close = safe_number(candidate.get("current_close"))
+    sma50 = safe_number(candidate.get("sma50"))
+    sma200 = safe_number(candidate.get("sma200"))
 
-    if performance >= 5:
-        return (
-            "Unter Filter",
-            "Positives Momentum vorhanden, aber zu schwach für dein Earnings-Momentum-Setup.",
-            "Nur beobachten",
-        )
+    spy_relative = None
+    qqq_relative = None
 
-    if performance >= 0:
-        return (
-            "Unter Filter",
-            "Kaum Momentum. Kein klarer institutioneller Vorlauf vor den Zahlen erkennbar.",
-            "Ignorieren",
-        )
+    if perf_2m is not None and spy_perf is not None:
+        spy_relative = round(perf_2m - spy_perf, 2)
 
-    return (
-        "Schwach",
-        "Negatives Momentum vor Earnings. Für diesen Screener uninteressant.",
-        "Ignorieren",
+    if perf_2m is not None and qqq_perf is not None:
+        qqq_relative = round(perf_2m - qqq_perf, 2)
+
+    distance_sma50 = None
+    distance_sma200 = None
+
+    if close is not None and sma50 is not None and sma50 > 0:
+        distance_sma50 = round((close / sma50 - 1) * 100, 2)
+
+    if close is not None and sma200 is not None and sma200 > 0:
+        distance_sma200 = round((close / sma200 - 1) * 100, 2)
+
+    stage2_score, stage2_status = calculate_stage2_score(
+        close=close,
+        sma50=sma50,
+        sma200=sma200,
+        perf_3m=perf_3m,
+        perf_6m=perf_6m,
+        spy_relative=spy_relative,
     )
 
-
-def normalize_exchange_for_tradingview(exchange):
-    if not exchange:
-        return "NASDAQ"
-
-    exchange = str(exchange).upper().strip()
-
-    if "NEW YORK" in exchange:
-        return "NYSE"
-
-    if "NASDAQ" in exchange:
-        return "NASDAQ"
-
-    if "NYSE" in exchange:
-        return "NYSE"
-
-    exchange_map = {
-        "NASDAQ": "NASDAQ",
-        "NYSE": "NYSE",
-        "AMEX": "AMEX",
-        "OTC": "OTC",
-        "XETRA": "XETR",
-        "FRANKFURT": "FWB",
-        "FWB": "FWB",
-        "LSE": "LSE",
-        "TSX": "TSX",
-        "EURONEXT": "EURONEXT",
-    }
-
-    return exchange_map.get(exchange, "NASDAQ")
-
-
-def chart_url(symbol, exchange="NASDAQ"):
-    symbol = normalize_symbol(symbol)
-    tv_exchange = normalize_exchange_for_tradingview(exchange)
-
-    return f"https://www.tradingview.com/chart/?symbol={tv_exchange}%3A{symbol}"
-
-
-def build_result_row(
-    symbol,
-    company,
-    earnings_date,
-    calendar_source,
-    momentum,
-    min_performance,
-):
-    symbol = normalize_symbol(symbol)
-    profile = get_company_profile_cached(symbol)
-
-    company_name = (
-        profile.get("company")
-        or COMPANY_FALLBACK_MAP.get(symbol)
-        or company
-        or symbol
+    score, rating = score_stock(
+        perf_2m=perf_2m,
+        spy_relative=spy_relative,
+        qqq_relative=qqq_relative,
+        stage2_score=stage2_score,
+        close=close,
+        sma50=sma50,
+        sma200=sma200,
     )
-
-    isin = profile.get("isin") or "n/a"
-    wkn = WKN_MAP.get(symbol, "n/a")
-    exchange = profile.get("exchange") or EXCHANGE_FALLBACK_MAP.get(symbol) or "NASDAQ"
-
-    score, rating = score_stock(momentum)
-
-    performance = round(momentum["performance_2m"], 2)
-    spy_relative = momentum.get("spy_relative_2m")
-    qqq_relative = momentum.get("qqq_relative_2m")
-    stage2_score = momentum.get("stage2_score", 0)
 
     status, interpretation, action = classify_stock(
-        performance,
-        min_performance,
-        spy_relative,
-        stage2_score,
+        perf_2m=perf_2m,
+        min_perf=min_performance,
+        spy_relative=spy_relative,
+        stage2_score=stage2_score,
     )
 
     return {
         "symbol": symbol,
-        "company": company_name,
-        "wkn": wkn,
-        "isin": isin,
+        "company": company,
+        "wkn": WKN_MAP.get(symbol, "n/a"),
+        "isin": "n/a",
         "exchange": exchange,
-        "earnings_date": earnings_date,
-        "calendar_source": calendar_source,
-        "current_close": round(momentum["current_close"], 2),
-        "performance_2m_pct": performance,
-        "spy_relative_2m_pct": round(spy_relative, 2) if spy_relative is not None else None,
-        "qqq_relative_2m_pct": round(qqq_relative, 2) if qqq_relative is not None else None,
-        "above_sma_20": momentum["above_sma_20"],
-        "above_sma_50": momentum["above_sma_50"],
-        "above_sma_150": momentum["above_sma_150"],
-        "above_sma_200": momentum["above_sma_200"],
-        "distance_sma_50_pct": round(momentum["distance_sma_50"], 2),
-        "stage2_score": int(momentum["stage2_score"]),
-        "stage2_status": momentum["stage2_status"],
+        "earnings_date": candidate.get("earnings_date") or "n/a",
+        "calendar_source": candidate.get("calendar_source") or "n/a",
+        "current_close": close,
+        "performance_1m_pct": round(perf_1m, 2) if perf_1m is not None else None,
+        "performance_3m_pct": round(perf_3m, 2) if perf_3m is not None else None,
+        "performance_2m_proxy_pct": perf_2m,
+        "spy_relative_proxy_pct": spy_relative,
+        "qqq_relative_proxy_pct": qqq_relative,
+        "above_sma_50": close is not None and sma50 is not None and close > sma50,
+        "above_sma_200": close is not None and sma200 is not None and close > sma200,
+        "distance_sma_50_pct": distance_sma50,
+        "distance_sma_200_pct": distance_sma200,
+        "stage2_score": stage2_score,
+        "stage2_status": stage2_status,
         "score": score,
         "rating": rating,
         "status": status,
         "interpretation": interpretation,
         "action": action,
-        "chart_url": chart_url(symbol, exchange),
-        "data_source": momentum.get("data_source", "n/a"),
+        "chart_url": tradingview_url(symbol, exchange),
+        "data_source": "TradingView Screener",
     }
-
-
-def evaluate_symbol(candidate, spy_perf_2m, qqq_perf_2m, min_performance_2m):
-    symbol = candidate["symbol"]
-
-    prices = get_historical_prices(symbol)
-    momentum = calculate_momentum(prices, spy_perf_2m, qqq_perf_2m)
-
-    if momentum is None:
-        return None
-
-    return build_result_row(
-        symbol=symbol,
-        company=candidate["company"],
-        earnings_date=candidate["earnings_date"],
-        calendar_source=candidate["calendar_source"],
-        momentum=momentum,
-        min_performance=min_performance_2m,
-    )
 
 
 def analyze_single_symbol(symbol, min_performance_2m=15.0):
@@ -923,192 +750,95 @@ def analyze_single_symbol(symbol, min_performance_2m=15.0):
     if not symbol:
         return None
 
-    try:
-        spy_df = get_historical_prices("SPY")
-        qqq_df = get_historical_prices("QQQ")
+    df, error = get_tradingview_universe(limit=10000)
 
-        spy_perf_2m = calculate_price_performance(spy_df, 42)
-        qqq_perf_2m = calculate_price_performance(qqq_df, 42)
-
-        prices = get_historical_prices(symbol)
-        momentum = calculate_momentum(prices, spy_perf_2m, qqq_perf_2m)
-
-        if momentum is None:
-            return None
-
-        return pd.DataFrame(
-            [
-                build_result_row(
-                    symbol=symbol,
-                    company=COMPANY_FALLBACK_MAP.get(symbol, symbol),
-                    earnings_date="nicht geprüft",
-                    calendar_source="Manuelle Prüfung",
-                    momentum=momentum,
-                    min_performance=min_performance_2m,
-                )
-            ],
-            columns=COLUMNS,
-        )
-
-    except Exception as error:
-        print(f"Manuelle Prüfung fehlgeschlagen bei {symbol}: {error}")
+    if error or df.empty:
         return None
 
+    match = df[df["name"].astype(str).str.upper() == symbol]
 
-def calculate_market_regime():
-    spy_df = get_historical_prices("SPY")
-    qqq_df = get_historical_prices("QQQ")
+    if match.empty and "ticker" in df.columns:
+        match = df[df["ticker"].astype(str).str.upper().str.endswith(f":{symbol}")]
 
-    spy_perf_2m = calculate_price_performance(spy_df, 42)
-    qqq_perf_2m = calculate_price_performance(qqq_df, 42)
+    if match.empty:
+        return None
 
-    def index_status(df, name):
-        if df is None or len(df) < 220:
-            return {
-                "name": name,
-                "status": "unbekannt",
-                "above_sma50": False,
-                "above_sma200": False,
-                "perf_2m": None,
-            }
+    row = match.iloc[0]
 
-        close = df["close"]
-        current = float(close.iloc[-1])
-        sma50 = close.tail(50).mean()
-        sma200 = close.tail(200).mean()
-        perf_2m = calculate_price_performance(df, 42)
-
-        if current > sma50 and current > sma200:
-            status = "grün"
-        elif current > sma200:
-            status = "neutral"
-        else:
-            status = "rot"
-
-        return {
-            "name": name,
-            "status": status,
-            "above_sma50": current > sma50,
-            "above_sma200": current > sma200,
-            "perf_2m": round(perf_2m, 2) if perf_2m is not None else None,
-        }
-
-    spy_status = index_status(spy_df, "SPY")
-    qqq_status = index_status(qqq_df, "QQQ")
-
-    if spy_status["status"] == "grün" and qqq_status["status"] == "grün":
-        regime = "grün"
-        interpretation = "Marktumfeld unterstützt Momentum-Setups."
-    elif spy_status["status"] == "rot" or qqq_status["status"] == "rot":
-        regime = "rot"
-        interpretation = "Marktumfeld ist riskant. Earnings-Breakouts können schneller scheitern."
-    else:
-        regime = "neutral"
-        interpretation = "Marktumfeld ist gemischt. Positionsgröße und Risikomanagement wichtiger."
-
-    return {
-        "regime": regime,
-        "interpretation": interpretation,
-        "spy_status": spy_status,
-        "qqq_status": qqq_status,
-        "spy_perf_2m": spy_perf_2m,
-        "qqq_perf_2m": qqq_perf_2m,
+    candidate = {
+        "symbol": symbol,
+        "company": row.get("description") or COMPANY_FALLBACK_MAP.get(symbol) or symbol,
+        "exchange": row.get("exchange") or EXCHANGE_FALLBACK_MAP.get(symbol) or "NASDAQ",
+        "earnings_date": "nicht geprüft",
+        "calendar_source": "Manuelle TradingView-Prüfung",
+        "current_close": safe_number(row.get("close")),
+        "performance_1m_pct": safe_number(row.get("Perf.1M")),
+        "performance_3m_pct": safe_number(row.get("Perf.3M")),
+        "performance_6m_pct": safe_number(row.get("Perf.6M")),
+        "sma50": safe_number(row.get("SMA50")),
+        "sma200": safe_number(row.get("SMA200")),
     }
+
+    market = calculate_market_regime()
+    spy_perf = market.get("spy_perf_2m")
+    qqq_perf = market.get("qqq_perf_2m")
+
+    result = build_result_row(candidate, min_performance_2m, spy_perf, qqq_perf)
+
+    return pd.DataFrame([result], columns=COLUMNS)
 
 
 def run_screen(
     lookback_days=7,
     forward_days=14,
     min_performance_2m=15.0,
-    use_tradingview=True,
-    tradingview_limit=3000,
-    max_candidates=250,
-    max_workers=12,
-    progress_callback=None,
+    tradingview_limit=8000,
 ):
-    os.makedirs(DATA_DIR, exist_ok=True)
-
     today = date.today()
     start_date = today - timedelta(days=lookback_days)
     end_date = today + timedelta(days=forward_days)
 
-    (
-        candidates,
-        fmp_earnings,
-        finnhub_earnings,
-        tradingview_earnings,
-        tradingview_error,
-        skipped_no_symbol,
-    ) = build_candidates_from_calendars(
+    tv_candidates, tv_error = get_tradingview_earnings_candidates(
         start_date=start_date,
         end_date=end_date,
-        use_tradingview=use_tradingview,
-        tradingview_limit=tradingview_limit,
+        limit=tradingview_limit,
     )
 
-    candidate_items = list(candidates.items())
+    api_candidates, fmp_earnings, finnhub_earnings = get_fmp_finnhub_candidates(
+        start_date=start_date,
+        end_date=end_date,
+    )
 
-    original_candidates_total = len(candidate_items)
-
-    if max_candidates and len(candidate_items) > max_candidates:
-        candidate_items = candidate_items[:max_candidates]
+    candidates = merge_candidates(tv_candidates, api_candidates)
 
     market_regime = calculate_market_regime()
-    spy_perf_2m = market_regime.get("spy_perf_2m")
-    qqq_perf_2m = market_regime.get("qqq_perf_2m")
+    spy_perf = market_regime.get("spy_perf_2m")
+    qqq_perf = market_regime.get("qqq_perf_2m")
 
-    all_results = []
-    skipped_no_prices = 0
+    rows = []
 
-    total = len(candidate_items)
-    done = 0
+    for candidate in candidates:
+        row = build_result_row(
+            candidate=candidate,
+            min_performance=min_performance_2m,
+            spy_perf=spy_perf,
+            qqq_perf=qqq_perf,
+        )
 
-    if progress_callback:
-        progress_callback(done, total)
+        if row["performance_2m_proxy_pct"] is not None:
+            rows.append(row)
 
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = {
-            executor.submit(
-                evaluate_symbol,
-                candidate,
-                spy_perf_2m,
-                qqq_perf_2m,
-                min_performance_2m,
-            ): symbol
-            for symbol, candidate in candidate_items
-        }
-
-        for future in as_completed(futures):
-            symbol = futures[future]
-
-            try:
-                row = future.result()
-
-                if row is None:
-                    skipped_no_prices += 1
-                else:
-                    all_results.append(row)
-            except Exception as error:
-                skipped_no_prices += 1
-                print(f"Fehler bei {symbol}: {error}")
-
-            done += 1
-
-            if progress_callback:
-                progress_callback(done, total)
-
-    all_df = pd.DataFrame(all_results, columns=COLUMNS)
+    all_df = pd.DataFrame(rows, columns=COLUMNS)
 
     if not all_df.empty:
         all_df = all_df.sort_values(
-            by=["score", "performance_2m_pct", "stage2_score"],
+            by=["score", "performance_2m_proxy_pct", "stage2_score"],
             ascending=[False, False, False],
         )
 
-    filtered_df = all_df[all_df["performance_2m_pct"] >= min_performance_2m].copy()
-
-    all_df.to_csv(ALL_FILE, index=False)
-    filtered_df.to_csv(FILTERED_FILE, index=False)
+    filtered_df = all_df[
+        all_df["performance_2m_proxy_pct"] >= min_performance_2m
+    ].copy()
 
     best_symbol = None
     best_company = None
@@ -1117,19 +847,16 @@ def run_screen(
     if not all_df.empty:
         best_symbol = all_df.iloc[0]["symbol"]
         best_company = all_df.iloc[0]["company"]
-        best_performance = all_df.iloc[0]["performance_2m_pct"]
+        best_performance = all_df.iloc[0]["performance_2m_proxy_pct"]
 
     stats = {
         "fmp_earnings_found": len(fmp_earnings),
         "finnhub_earnings_found": len(finnhub_earnings),
-        "tradingview_earnings_found": len(tradingview_earnings),
-        "tradingview_error": tradingview_error,
-        "candidates_total": original_candidates_total,
-        "candidates_scanned": len(candidate_items),
+        "tradingview_earnings_found": len(tv_candidates),
+        "tradingview_error": tv_error,
+        "candidates_total": len(candidates),
         "stocks_with_price_data": len(all_df),
         "hits": len(filtered_df),
-        "skipped_no_symbol": skipped_no_symbol,
-        "skipped_no_prices": skipped_no_prices,
         "start_date": str(start_date),
         "end_date": str(end_date),
         "min_performance_2m": min_performance_2m,
@@ -1140,9 +867,3 @@ def run_screen(
     }
 
     return filtered_df, all_df, stats
-
-
-if __name__ == "__main__":
-    filtered, all_candidates, stats = run_screen()
-    print(stats)
-    print(filtered)
