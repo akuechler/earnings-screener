@@ -14,8 +14,8 @@ st.markdown(
     """
     <style>
         .stApp {
-            background: #0E1117;
-            color: #E6EAF2;
+            background: #0B0F17;
+            color: #E8EEF7;
         }
 
         [data-testid="stSidebar"] {
@@ -24,115 +24,124 @@ st.markdown(
         }
 
         [data-testid="stSidebar"] * {
-            color: #E6EAF2;
-        }
-
-        h1, h2, h3, h4 {
-            color: #F5F7FA !important;
-            letter-spacing: -0.02em;
-        }
-
-        p, span, div {
-            color: inherit;
+            color: #E8EEF7;
         }
 
         .block-container {
-            padding-top: 2.2rem;
-            padding-left: 2.2rem;
-            padding-right: 2.2rem;
-            max-width: 1550px;
+            padding-top: 1.7rem;
+            padding-left: 2.1rem;
+            padding-right: 2.1rem;
+            max-width: 1580px;
+        }
+
+        h1, h2, h3, h4 {
+            color: #F8FAFC !important;
+            letter-spacing: -0.02em;
         }
 
         .main-header {
-            padding: 18px 22px;
+            padding: 20px 24px;
             border-radius: 22px;
-            background: linear-gradient(135deg, #141A24 0%, #1B2432 100%);
-            border: 1px solid rgba(255,255,255,0.08);
-            box-shadow: 0 10px 28px rgba(0,0,0,0.35);
-            margin-bottom: 22px;
+            background: linear-gradient(135deg, #1E293B 0%, #172033 100%);
+            border: 1px solid rgba(255,255,255,0.12);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.32);
+            margin-bottom: 24px;
         }
 
         .main-title {
             font-size: 36px;
-            font-weight: 800;
-            line-height: 1.1;
-            margin-bottom: 6px;
-            color: #F8FAFC;
+            font-weight: 850;
+            line-height: 1.08;
+            margin-bottom: 7px;
+            color: #FFFFFF;
         }
 
         .main-subtitle {
             font-size: 14px;
-            color: #AAB4C3;
+            color: #CBD5E1;
         }
 
-        .section-card {
-            background: #141A24;
-            border: 1px solid rgba(255,255,255,0.08);
+        .summary-card {
+            background: #182235;
+            border: 1px solid rgba(255,255,255,0.10);
             border-radius: 20px;
             padding: 18px 20px;
-            box-shadow: 0 8px 22px rgba(0,0,0,0.28);
             margin-bottom: 18px;
+            box-shadow: 0 10px 24px rgba(0,0,0,0.24);
+        }
+
+        .summary-title {
+            font-size: 22px;
+            font-weight: 820;
+            margin-bottom: 8px;
+            color: #F8FAFC;
+        }
+
+        .summary-text {
+            font-size: 14px;
+            color: #CBD5E1;
+            line-height: 1.45;
         }
 
         .stock-card {
-            background: #141A24;
-            border: 1px solid rgba(255,255,255,0.09);
+            background: #162032;
+            border: 1px solid rgba(255,255,255,0.11);
             border-radius: 22px;
-            padding: 16px 18px 18px 18px;
-            margin-bottom: 16px;
-            box-shadow: 0 10px 26px rgba(0,0,0,0.30);
+            padding: 18px;
+            margin-bottom: 18px;
+            box-shadow: 0 12px 28px rgba(0,0,0,0.30);
         }
 
         .stock-card-hit {
-            border-color: rgba(34,197,94,0.55);
-            box-shadow: 0 0 0 1px rgba(34,197,94,0.16), 0 10px 26px rgba(0,0,0,0.30);
+            border-color: rgba(34,197,94,0.65);
+            box-shadow: 0 0 0 1px rgba(34,197,94,0.18), 0 12px 28px rgba(0,0,0,0.30);
         }
 
         .stock-card-watch {
-            border-color: rgba(234,179,8,0.45);
+            border-color: rgba(245,158,11,0.48);
         }
 
         .stock-title {
-            font-size: 21px;
-            font-weight: 800;
-            color: #F8FAFC;
+            font-size: 22px;
+            font-weight: 850;
+            color: #FFFFFF;
             margin-bottom: 4px;
         }
 
         .stock-meta {
-            color: #97A3B6;
+            color: #B8C4D6;
             font-size: 12px;
             margin-bottom: 12px;
         }
 
         .metric-box {
-            background: #0F1623;
-            border: 1px solid rgba(255,255,255,0.075);
-            border-radius: 16px;
-            padding: 11px 12px;
-            height: 78px;
+            background: #0F1726;
+            border: 1px solid rgba(255,255,255,0.09);
+            border-radius: 15px;
+            padding: 10px 11px;
+            min-height: 72px;
         }
 
         .metric-label {
             font-size: 11px;
-            color: #93A0B4;
+            color: #AAB7CA;
             margin-bottom: 5px;
             white-space: nowrap;
         }
 
         .metric-value {
-            font-size: 22px;
-            line-height: 1.1;
-            font-weight: 800;
-            color: #F8FAFC;
+            font-size: 20px;
+            line-height: 1.15;
+            font-weight: 820;
+            color: #FFFFFF;
             white-space: nowrap;
         }
 
         .metric-value-small {
-            font-size: 18px;
+            font-size: 17px;
             line-height: 1.15;
-            font-weight: 800;
-            color: #F8FAFC;
+            font-weight: 820;
+            color: #FFFFFF;
             white-space: nowrap;
         }
 
@@ -141,64 +150,63 @@ st.markdown(
         }
 
         .negative {
-            color: #EF4444 !important;
+            color: #F87171 !important;
         }
 
         .neutral {
-            color: #F59E0B !important;
+            color: #FBBF24 !important;
         }
 
         .muted {
-            color: #93A0B4 !important;
+            color: #CBD5E1 !important;
         }
 
         .badge-row {
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 10px;
+            gap: 7px;
+            margin-top: 11px;
             margin-bottom: 8px;
         }
 
         .badge {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
             border-radius: 999px;
             padding: 5px 10px;
             font-size: 12px;
-            font-weight: 700;
-            border: 1px solid rgba(255,255,255,0.10);
-            background: #0F1623;
-            color: #DDE3EC;
+            font-weight: 750;
+            border: 1px solid rgba(255,255,255,0.12);
+            background: #0F1726;
+            color: #DDE6F3;
         }
 
         .badge-green {
-            background: rgba(34,197,94,0.13);
-            border-color: rgba(34,197,94,0.38);
+            background: rgba(34,197,94,0.14);
+            border-color: rgba(34,197,94,0.44);
             color: #86EFAC;
         }
 
         .badge-yellow {
-            background: rgba(245,158,11,0.13);
-            border-color: rgba(245,158,11,0.38);
+            background: rgba(245,158,11,0.14);
+            border-color: rgba(245,158,11,0.44);
             color: #FCD34D;
         }
 
         .badge-red {
-            background: rgba(239,68,68,0.13);
-            border-color: rgba(239,68,68,0.38);
+            background: rgba(239,68,68,0.14);
+            border-color: rgba(239,68,68,0.44);
             color: #FCA5A5;
         }
 
         .badge-blue {
-            background: rgba(59,130,246,0.13);
-            border-color: rgba(59,130,246,0.38);
+            background: rgba(59,130,246,0.14);
+            border-color: rgba(59,130,246,0.44);
             color: #93C5FD;
         }
 
         .info-line {
-            color: #AAB4C3;
+            color: #CAD5E6;
             font-size: 13px;
             line-height: 1.45;
             margin-top: 8px;
@@ -206,16 +214,16 @@ st.markdown(
 
         .chart-wrap {
             background: #0B0F17;
-            border: 1px solid rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.10);
             border-radius: 16px;
             overflow: hidden;
             padding: 8px;
-            margin-top: 8px;
+            margin-top: 2px;
         }
 
         .chart-wrap img {
             width: 100%;
-            max-width: 560px;
+            max-width: 500px;
             height: auto;
             display: block;
             border-radius: 10px;
@@ -223,18 +231,18 @@ st.markdown(
 
         .chart-caption {
             font-size: 11px;
-            color: #8C98AA;
-            margin-top: 5px;
+            color: #9BA8BC;
+            margin-top: 6px;
         }
 
         .stButton > button,
         .stLinkButton > a {
             background: #2563EB !important;
             color: white !important;
-            border: 1px solid rgba(255,255,255,0.10) !important;
+            border: 1px solid rgba(255,255,255,0.12) !important;
             border-radius: 12px !important;
             font-weight: 800 !important;
-            box-shadow: 0 6px 16px rgba(37,99,235,0.25);
+            box-shadow: 0 6px 16px rgba(37,99,235,0.22);
         }
 
         .stButton > button:hover,
@@ -245,19 +253,19 @@ st.markdown(
         }
 
         div[data-testid="stMetric"] {
-            background: #141A24;
-            border: 1px solid rgba(255,255,255,0.08);
+            background: #182235;
+            border: 1px solid rgba(255,255,255,0.10);
             border-radius: 16px;
             padding: 13px 14px;
             box-shadow: 0 6px 16px rgba(0,0,0,0.20);
         }
 
         div[data-testid="stMetricLabel"] {
-            color: #93A0B4 !important;
+            color: #CBD5E1 !important;
         }
 
         div[data-testid="stMetricValue"] {
-            color: #F8FAFC !important;
+            color: #FFFFFF !important;
         }
 
         .stAlert {
@@ -265,13 +273,13 @@ st.markdown(
         }
 
         [data-testid="stDataFrame"] {
-            background: #141A24;
+            background: #182235;
             border-radius: 16px;
             overflow: hidden;
         }
 
         hr {
-            border-color: rgba(255,255,255,0.08);
+            border-color: rgba(255,255,255,0.09);
         }
     </style>
     """,
@@ -284,7 +292,7 @@ st.markdown(
     <div class="main-header">
         <div class="main-title">Earnings Momentum Screener</div>
         <div class="main-subtitle">
-            Schwarzes Analysten-Dashboard · TradingView als Hauptquelle · FMP/Finnhub ergänzen Earnings-Termine
+            Analysten-Dashboard · Earnings-Kandidaten · Momentum · 50-/200-Tage-Linie · kompakte Chartvorschau
         </div>
     </div>
     """,
@@ -477,30 +485,6 @@ def show_chart_preview(ticker):
     )
 
 
-def show_market_regime(stats):
-    market = stats.get("market_regime", {})
-
-    regime = market.get("regime", "unbekannt")
-    interpretation = market.get("interpretation", "")
-
-    if regime == "grün":
-        st.success(f"Marktampel: GRÜN — {interpretation}")
-    elif regime == "rot":
-        st.error(f"Marktampel: ROT — {interpretation}")
-    elif regime == "neutral":
-        st.warning(f"Marktampel: NEUTRAL — {interpretation}")
-    else:
-        st.info(f"Marktampel: UNBEKANNT — {interpretation}")
-
-    col1, col2 = st.columns(2)
-
-    spy_perf = market.get("spy_perf_2m")
-    qqq_perf = market.get("qqq_perf_2m")
-
-    col1.metric("SPY 2M Proxy", format_percent(spy_perf))
-    col2.metric("QQQ 2M Proxy", format_percent(qqq_perf))
-
-
 def metric_box(label, value, css_class=""):
     return f"""
     <div class="metric-box">
@@ -517,6 +501,49 @@ def metric_box_small(label, value, css_class=""):
         <div class="metric-value-small {css_class}">{value}</div>
     </div>
     """
+
+
+def show_screening_summary(stats):
+    start_date = format_date_de(stats.get("start_date"))
+    end_date = format_date_de(stats.get("end_date"))
+    hits = stats.get("hits", 0)
+    min_perf = stats.get("min_performance_2m", 0)
+
+    if hits > 0:
+        result_text = f"{hits} Aktie(n) erfüllen den Momentum-Filter von mindestens {min_perf:.0f} %."
+        result_color = "positive"
+    else:
+        result_text = f"Kein Treffer über {min_perf:.0f} %. Der Filter ist aktuell streng oder der Zeitraum unattraktiv."
+        result_color = "neutral"
+
+    st.markdown(
+        f"""
+        <div class="summary-card">
+            <div class="summary-title">Screening-Übersicht</div>
+            <div class="summary-text">
+                Zeitraum: <b>{start_date}</b> bis <b>{end_date}</b><br>
+                Ergebnis: <span class="{result_color}"><b>{result_text}</b></span>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    col1, col2, col3, col4, col5, col6 = st.columns(6)
+
+    col1.metric("FMP Earnings", stats.get("fmp_earnings_found", 0))
+    col2.metric("Finnhub Earnings", stats.get("finnhub_earnings_found", 0))
+    col3.metric("TradingView Earnings", stats.get("tradingview_earnings_found", 0))
+    col4.metric("Kandidaten gesamt", stats.get("candidates_total", 0))
+    col5.metric("Mit Performance-Daten", stats.get("stocks_with_price_data", 0))
+    col6.metric("Treffer", hits)
+
+    if stats.get("best_symbol") is not None:
+        st.metric(
+            "Bester geprüfter Kandidat",
+            f"{stats.get('best_company')} ({stats.get('best_symbol')})",
+            format_percent(stats.get("best_performance")),
+        )
 
 
 def show_candidate_cards(df, title, empty_message, limit=20, show_charts=True):
@@ -550,24 +577,30 @@ def show_candidate_cards(df, title, empty_message, limit=20, show_charts=True):
                 <div class="stock-card {card_class}">
                     <div class="stock-title">{company} ({ticker})</div>
                     <div class="stock-meta">
-                        WKN: {wkn} · Börse: {exchange} · Earnings: {row['Datum']} · Quelle: {source}
+                        WKN: {wkn} · Börse: {exchange} · Earnings-Datum: {row['Datum']} · Earnings-Quelle: {source}
                     </div>
                 """,
                 unsafe_allow_html=True,
             )
 
-            top_left, top_right = st.columns([2.1, 1])
+            left, right = st.columns([2.15, 1])
 
-            with top_left:
-                c1, c2, c3 = st.columns(3)
+            with left:
+                c1, c2, c3, c4 = st.columns(4)
 
                 with c1:
+                    st.markdown(
+                        metric_box("Earnings-Datum", row["Datum"]),
+                        unsafe_allow_html=True,
+                    )
+
+                with c2:
                     st.markdown(
                         metric_box("Aktueller Kurs", row["Kurs"]),
                         unsafe_allow_html=True,
                     )
 
-                with c2:
+                with c3:
                     st.markdown(
                         metric_box(
                             "2M Proxy",
@@ -577,15 +610,15 @@ def show_candidate_cards(df, title, empty_message, limit=20, show_charts=True):
                         unsafe_allow_html=True,
                     )
 
-                with c3:
+                with c4:
                     st.markdown(
                         metric_box("Gesamtscore", f"{int(row['score'])} %"),
                         unsafe_allow_html=True,
                     )
 
-                c4, c5, c6 = st.columns(3)
+                c5, c6, c7, c8 = st.columns(4)
 
-                with c4:
+                with c5:
                     st.markdown(
                         metric_box_small(
                             "Abstand 50-Tage-Linie",
@@ -595,7 +628,7 @@ def show_candidate_cards(df, title, empty_message, limit=20, show_charts=True):
                         unsafe_allow_html=True,
                     )
 
-                with c5:
+                with c6:
                     st.markdown(
                         metric_box_small(
                             "Abstand 200-Tage-Linie",
@@ -605,9 +638,15 @@ def show_candidate_cards(df, title, empty_message, limit=20, show_charts=True):
                         unsafe_allow_html=True,
                     )
 
-                with c6:
+                with c7:
                     st.markdown(
                         metric_box_small("Stage 2", f"{int(row['stage2_score'])} %"),
+                        unsafe_allow_html=True,
+                    )
+
+                with c8:
+                    st.markdown(
+                        metric_box_small("Earnings-Quelle", source),
                         unsafe_allow_html=True,
                     )
 
@@ -635,7 +674,7 @@ def show_candidate_cards(df, title, empty_message, limit=20, show_charts=True):
                 if chart_url:
                     st.link_button("TradingView öffnen", chart_url, use_container_width=False)
 
-            with top_right:
+            with right:
                 if show_charts:
                     show_chart_preview(ticker)
 
@@ -657,6 +696,7 @@ def show_compact_table(df, title):
             "symbol",
             "wkn",
             "Datum",
+            "calendar_source",
             "Kurs",
             "2M Proxy",
             "Abstand 50-Tage-Linie",
@@ -671,6 +711,7 @@ def show_compact_table(df, title):
             "company": "Unternehmen",
             "symbol": "Ticker",
             "wkn": "WKN",
+            "calendar_source": "Earnings-Quelle",
             "stage2_score": "Stage 2",
             "score": "Score",
             "status": "Status",
@@ -764,16 +805,16 @@ def show_detail_table(df):
 def show_explanation_box(min_performance):
     st.markdown(
         f"""
-        <div class="section-card">
-            <h3>Lesart</h3>
-            <div class="info-line">
+        <div class="summary-card">
+            <div class="summary-title">Lesart</div>
+            <div class="summary-text">
                 <b>Treffer:</b> geschätzte 2M-Performance liegt bei mindestens {min_performance:.0f} %.<br>
                 <b>2M-Performance Proxy:</b> wird aus TradingView 1M- und 3M-Performance abgeleitet.<br>
                 <b>Abstand 50-Tage-Linie:</b> Abstand des aktuellen Kurses zur 50-Tage-Linie.<br>
                 <b>Abstand 200-Tage-Linie:</b> Abstand des aktuellen Kurses zur 200-Tage-Linie.<br>
-                <b>Relativ zu SPY / QQQ:</b> Aktie läuft stärker oder schwächer als Markt/Tech.<br>
+                <b>Earnings-Datum / Earnings-Quelle:</b> zeigt, wann die Zahlen anstehen oder zuletzt gemeldet wurden und aus welcher Quelle der Termin kommt.<br>
                 <b>Stage-2-Score:</b> technische Trendqualität über Kurs, 50-Tage-Linie, 200-Tage-Linie und Performance.<br>
-                <b>Chart-Vorschau:</b> kleine Finviz-Bildvorschau. Für Detailanalyse immer den TradingView-Link öffnen.
+                <b>Chart-Vorschau:</b> kleine Finviz-Bildvorschau. Für Detailanalyse immer TradingView öffnen.
             </div>
         </div>
         """,
@@ -822,53 +863,10 @@ with st.spinner("Screener läuft. TradingView-Daten werden geladen und gefiltert
     )
 
 
-st.subheader("Marktumfeld")
-show_market_regime(stats)
-
-st.divider()
-
-st.subheader("Kurzfazit")
-
-if stats["tradingview_error"]:
+if stats.get("tradingview_error"):
     st.warning(f"TradingView-Quelle: {stats['tradingview_error']}")
 
-if stats["hits"] > 0:
-    st.success(
-        f"{stats['hits']} Aktie(n) erfüllen den Momentum-Filter von mindestens "
-        f"{stats['min_performance_2m']:.0f} %."
-    )
-else:
-    if stats["best_symbol"] is not None:
-        st.warning(
-            f"Kein Treffer über {stats['min_performance_2m']:.0f} %. "
-            f"Bester geprüfter Kandidat: {stats['best_company']} ({stats['best_symbol']}) "
-            f"mit {format_percent(stats['best_performance'])}."
-        )
-    else:
-        st.error("Keine verwertbaren Kandidaten gefunden.")
-
-
-col1, col2, col3, col4, col5, col6 = st.columns(6)
-
-col1.metric("FMP Earnings", stats["fmp_earnings_found"])
-col2.metric("Finnhub Earnings", stats["finnhub_earnings_found"])
-col3.metric("TradingView Earnings", stats["tradingview_earnings_found"])
-col4.metric("Kandidaten gesamt", stats["candidates_total"])
-col5.metric("Mit Performance-Daten", stats["stocks_with_price_data"])
-col6.metric("Treffer", stats["hits"])
-
-st.metric("Momentum-Filter", f">{stats['min_performance_2m']:.0f} %")
-
-if stats["best_symbol"] is not None:
-    st.metric(
-        "Bester geprüfter Kandidat",
-        f"{stats['best_company']} ({stats['best_symbol']})",
-        format_percent(stats["best_performance"]),
-    )
-
-st.caption(
-    f"Zeitraum: {format_date_de(stats['start_date'])} bis {format_date_de(stats['end_date'])}"
-)
+show_screening_summary(stats)
 
 st.divider()
 
