@@ -10,7 +10,7 @@ st.set_page_config(
 
 st.title("Earnings Momentum Screener")
 st.caption(
-    "Universe-basierter Earnings-Momentum-Screener aus FMP + Finnhub. "
+    "Universe-basierter Earnings-Momentum-Screener aus FMP + Finnhub + TradingView. "
     "Ziel: auch unbekannte Aktien finden, die vor Quartalszahlen starkes Kursmomentum zeigen."
 )
 
@@ -141,7 +141,7 @@ def show_explanation_box(min_performance):
 - **Knapp darunter**: Aktie liegt maximal 5 Prozentpunkte unter deinem Filter.
 - **Unter Filter**: Aktie hat Earnings im Zeitraum, aber der Kurs zeigt keine ausreichende Vorstärke.
 - **Schwach**: negatives Momentum, für diesen Ansatz uninteressant.
-- **Earnings-Quelle** zeigt, ob die Aktie aus FMP, Finnhub oder beiden Quellen kommt.
+- **Earnings-Quelle** zeigt, ob die Aktie aus FMP, Finnhub, TradingView oder mehreren Quellen kommt.
 - **Chart öffnen** öffnet den TradingView-Chart zur visuellen Prüfung.
 - **WKN** wird angezeigt, wenn sie in der lokalen Mapping-Liste hinterlegt ist.
 - **Kursdatenquelle** zeigt, ob die Kursdaten von FMP oder vom Fallback Stooq kommen.
@@ -187,13 +187,15 @@ if manual_check:
 if not run_now:
     st.info(
         "Klicke links auf **Screener jetzt ausführen**, um alle Earnings-Kandidaten "
-        "aus FMP + Finnhub zu laden."
+        "aus FMP + Finnhub + TradingView zu laden."
     )
     show_explanation_box(min_performance)
     st.stop()
 
 
-with st.spinner("Screener läuft. Earnings-Kalender von FMP + Finnhub und Kursdaten werden geladen..."):
+with st.spinner(
+    "Screener läuft. Earnings-Kalender von FMP + Finnhub + TradingView und Kursdaten werden geladen..."
+):
     hits_df, all_df, stats = run_screen(
         lookback_days=lookback_days,
         forward_days=forward_days,
@@ -202,6 +204,9 @@ with st.spinner("Screener läuft. Earnings-Kalender von FMP + Finnhub und Kursda
 
 
 st.subheader("Kurzfazit")
+
+if stats["tradingview_error"]:
+    st.warning(f"TradingView-Quelle konnte nicht geladen werden: {stats['tradingview_error']}")
 
 if stats["hits"] > 0:
     st.success(
@@ -228,10 +233,12 @@ col1, col2, col3, col4, col5, col6 = st.columns(6)
 
 col1.metric("FMP Earnings", stats["fmp_earnings_found"])
 col2.metric("Finnhub Earnings", stats["finnhub_earnings_found"])
-col3.metric("Kandidaten gesamt", stats["candidates_total"])
-col4.metric("Mit Kursdaten geprüft", stats["stocks_with_price_data"])
-col5.metric("Treffer", stats["hits"])
-col6.metric("Momentum-Filter", f">{stats['min_performance_2m']:.0f} %")
+col3.metric("TradingView Earnings", stats["tradingview_earnings_found"])
+col4.metric("Kandidaten gesamt", stats["candidates_total"])
+col5.metric("Mit Kursdaten geprüft", stats["stocks_with_price_data"])
+col6.metric("Treffer", stats["hits"])
+
+st.metric("Momentum-Filter", f">{stats['min_performance_2m']:.0f} %")
 
 if stats["best_symbol"] is not None:
     st.metric(
