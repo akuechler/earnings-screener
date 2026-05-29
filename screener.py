@@ -7,42 +7,35 @@ import requests
 import streamlit as st
 
 
-def get_fmp_api_key():
-    key = os.getenv("FMP_API_KEY")
+def get_secret(name):
+    value = os.getenv(name)
 
-    if key:
-        return key
+    if value:
+        return value
 
     try:
-        return st.secrets["FMP_API_KEY"]
+        return st.secrets[name]
     except Exception:
         return None
 
 
-FMP_API_KEY = get_fmp_api_key()
+FMP_API_KEY = get_secret("FMP_API_KEY")
+FINNHUB_API_KEY = get_secret("FINNHUB_API_KEY")
 
 if not FMP_API_KEY:
     raise RuntimeError(
         "FMP_API_KEY fehlt. Lege ihn in GitHub Actions und in Streamlit Secrets an."
     )
 
+if not FINNHUB_API_KEY:
+    raise RuntimeError(
+        "FINNHUB_API_KEY fehlt. Lege ihn in GitHub Actions und in Streamlit Secrets an."
+    )
+
 
 DATA_DIR = "data"
 FILTERED_FILE = os.path.join(DATA_DIR, "earnings_momentum_screen.csv")
 ALL_FILE = os.path.join(DATA_DIR, "earnings_momentum_all.csv")
-
-DEFAULT_EXTRA_SYMBOLS = [
-    "DELL",
-    "NVDA",
-    "MU",
-    "AVGO",
-    "AMD",
-    "CRM",
-    "ORCL",
-    "ADBE",
-    "COST",
-    "DOCU",
-]
 
 WKN_MAP = {
     "DELL": "A2N6WP",
@@ -66,6 +59,15 @@ WKN_MAP = {
     "NFLX": "552484",
     "QCOM": "883121",
     "IBM": "851399",
+    "NOW": "A1JX4P",
+    "SNOW": "A2QB38",
+    "PANW": "A1JZ0Q",
+    "CRWD": "A2PK2R",
+    "SHOP": "A14TJP",
+    "PLTR": "A2QA4J",
+    "SMCI": "A0MKJF",
+    "HPE": "A140KD",
+    "HPQ": "A142VP",
 }
 
 COMPANY_FALLBACK_MAP = {
@@ -90,6 +92,15 @@ COMPANY_FALLBACK_MAP = {
     "NFLX": "Netflix Inc.",
     "QCOM": "Qualcomm Inc.",
     "IBM": "International Business Machines Corporation",
+    "NOW": "ServiceNow Inc.",
+    "SNOW": "Snowflake Inc.",
+    "PANW": "Palo Alto Networks Inc.",
+    "CRWD": "CrowdStrike Holdings Inc.",
+    "SHOP": "Shopify Inc.",
+    "PLTR": "Palantir Technologies Inc.",
+    "SMCI": "Super Micro Computer Inc.",
+    "HPE": "Hewlett Packard Enterprise Company",
+    "HPQ": "HP Inc.",
 }
 
 EXCHANGE_FALLBACK_MAP = {
@@ -114,6 +125,15 @@ EXCHANGE_FALLBACK_MAP = {
     "NFLX": "NASDAQ",
     "QCOM": "NASDAQ",
     "IBM": "NYSE",
+    "NOW": "NYSE",
+    "SNOW": "NYSE",
+    "PANW": "NASDAQ",
+    "CRWD": "NASDAQ",
+    "SHOP": "NYSE",
+    "PLTR": "NASDAQ",
+    "SMCI": "NASDAQ",
+    "HPE": "NYSE",
+    "HPQ": "NYSE",
 }
 
 COLUMNS = [
@@ -145,15 +165,114 @@ def get_json(url: str):
     return response.json()
 
 
-def get_earnings_calendar(start_date, end_date):
+def get_fmp_earnings_calendar(start_date, end_date):
     url = (
         "https://financialmodelingprep.com/stable/earnings-calendar"
         f"?from={start_date}&to={end_date}&apikey={FMP_API_KEY}"
     )
-    return get_json(url)
+
+    try:
+        data = get_json(url)
+    except Exception as error:
+        print(f"FMP Earnings Calendar Fehler: {error}")
+        return []
+
+    if isinstance(data, list):
+        return data
+
+    return []
 
 
-def get_company_profile(symbol):
+def get_finnhub_earnings_calendar(start_date, end_date):
+    url = (
+        "https://finnhub.io/api/v1/calendar/earnings"
+        f"?from={start_date}&to={end_date}&token={FINNHUB_API_KEY}"
+    )
+
+    try:
+        data = get_json(url)
+    except Exception as error:
+        print(f"Finnhub Earnings Calendar Fehler: {error}")
+        return []
+
+    if isinstance(data, dict):
+        return data.get("earningsCalendar", []) or []
+
+    return []
+
+
+def normalize_symbol(symbol):
+    if not symbol:
+        return ""
+
+    symbol = str(symbol).upper().strip()
+
+    if "." in symbol:
+        return symbol.split(".")[0]
+
+    return symbol
+
+
+def build_candidates_from_calendars(start_date, end_date):
+    candidates = {}
+    fmp_earnings = get_fmp_earnings_calendar(start_date, end_date)
+    finnhub_earnings = get_finnhub_earnings_calendar(start_date, end_date)
+
+    skipped_no_symbol = 0
+
+    for item in fmp_earnings:
+        symbol = normalize_symbol(item.get("symbol"))
+
+        if not symbol:
+            skipped_no_symbol += 1
+            continue
+
+        company = (
+            item.get("companyName")
+            or item.get("name")
+            or item.get("company")
+            or COMPANY_FALLBACK_MAP.get(symbol)
+            or symbol
+        )
+
+        earnings_date = item.get("date") or item.get("fiscalDateEnding") or "n/a"
+
+        candidates[symbol] = {
+            "symbol": symbol,
+            "company": company,
+            "earnings_date": earnings_date,
+            "calendar_source": "FMP",
+        }
+
+    for item in finnhub_earnings:
+        symbol = normalize_symbol(item.get("symbol"))
+
+        if not symbol:
+            skipped_no_symbol += 1
+            continue
+
+        earnings_date = item.get("date") or "n/a"
+
+        if symbol in candidates:
+            old_source = candidates[symbol]["calendar_source"]
+
+            if "Finnhub" not in old_source:
+                candidates[symbol]["calendar_source"] = f"{old_source} + Finnhub"
+
+            if candidates[symbol]["earnings_date"] in ["n/a", None, ""]:
+                candidates[symbol]["earnings_date"] = earnings_date
+        else:
+            candidates[symbol] = {
+                "symbol": symbol,
+                "company": COMPANY_FALLBACK_MAP.get(symbol, symbol),
+                "earnings_date": earnings_date,
+                "calendar_source": "Finnhub",
+            }
+
+    return candidates, fmp_earnings, finnhub_earnings, skipped_no_symbol
+
+
+def get_company_profile_from_fmp(symbol):
     url = (
         "https://financialmodelingprep.com/stable/profile"
         f"?symbol={symbol}&apikey={FMP_API_KEY}"
@@ -171,6 +290,68 @@ def get_company_profile(symbol):
         return data
 
     return {}
+
+
+def get_company_profile_from_finnhub(symbol):
+    url = (
+        "https://finnhub.io/api/v1/stock/profile2"
+        f"?symbol={symbol}&token={FINNHUB_API_KEY}"
+    )
+
+    try:
+        data = get_json(url)
+    except Exception:
+        return {}
+
+    if isinstance(data, dict):
+        return data
+
+    return {}
+
+
+def get_company_profile(symbol):
+    fmp_profile = get_company_profile_from_fmp(symbol)
+
+    if fmp_profile:
+        return {
+            "company": (
+                fmp_profile.get("companyName")
+                or fmp_profile.get("companyNameLong")
+                or fmp_profile.get("name")
+                or COMPANY_FALLBACK_MAP.get(symbol)
+                or symbol
+            ),
+            "isin": fmp_profile.get("isin") or fmp_profile.get("ISIN") or "n/a",
+            "exchange": (
+                fmp_profile.get("exchangeShortName")
+                or fmp_profile.get("exchange")
+                or EXCHANGE_FALLBACK_MAP.get(symbol)
+                or "NASDAQ"
+            ),
+        }
+
+    finnhub_profile = get_company_profile_from_finnhub(symbol)
+
+    if finnhub_profile:
+        return {
+            "company": (
+                finnhub_profile.get("name")
+                or COMPANY_FALLBACK_MAP.get(symbol)
+                or symbol
+            ),
+            "isin": finnhub_profile.get("isin") or "n/a",
+            "exchange": (
+                finnhub_profile.get("exchange")
+                or EXCHANGE_FALLBACK_MAP.get(symbol)
+                or "NASDAQ"
+            ),
+        }
+
+    return {
+        "company": COMPANY_FALLBACK_MAP.get(symbol) or symbol,
+        "isin": "n/a",
+        "exchange": EXCHANGE_FALLBACK_MAP.get(symbol) or "NASDAQ",
+    }
 
 
 def get_historical_prices_from_fmp(symbol):
@@ -233,10 +414,11 @@ def get_historical_prices_from_stooq(symbol):
 
 
 def get_historical_prices(symbol):
-    symbol = symbol.upper().strip()
+    symbol = normalize_symbol(symbol)
 
     try:
         df = get_historical_prices_from_fmp(symbol)
+
         if df is not None and len(df) >= 50:
             return df
     except Exception as error:
@@ -244,6 +426,7 @@ def get_historical_prices(symbol):
 
     try:
         df = get_historical_prices_from_stooq(symbol)
+
         if df is not None and len(df) >= 50:
             return df
     except Exception as error:
@@ -359,6 +542,15 @@ def normalize_exchange_for_tradingview(exchange):
 
     exchange = str(exchange).upper().strip()
 
+    if "NEW YORK" in exchange:
+        return "NYSE"
+
+    if "NASDAQ" in exchange:
+        return "NASDAQ"
+
+    if "NYSE" in exchange:
+        return "NYSE"
+
     exchange_map = {
         "NASDAQ": "NASDAQ",
         "NYSE": "NYSE",
@@ -376,7 +568,7 @@ def normalize_exchange_for_tradingview(exchange):
 
 
 def chart_url(symbol, exchange="NASDAQ"):
-    symbol = symbol.upper().strip()
+    symbol = normalize_symbol(symbol)
     tv_exchange = normalize_exchange_for_tradingview(exchange)
 
     return f"https://www.tradingview.com/chart/?symbol={tv_exchange}%3A{symbol}"
@@ -390,26 +582,19 @@ def build_result_row(
     momentum,
     min_performance,
 ):
+    symbol = normalize_symbol(symbol)
     profile = get_company_profile(symbol)
 
     company_name = (
-        profile.get("companyName")
-        or profile.get("companyNameLong")
-        or profile.get("name")
+        profile.get("company")
         or COMPANY_FALLBACK_MAP.get(symbol)
         or company
         or symbol
     )
 
-    isin = profile.get("isin") or profile.get("ISIN") or "n/a"
+    isin = profile.get("isin") or "n/a"
     wkn = WKN_MAP.get(symbol, "n/a")
-
-    exchange = (
-        profile.get("exchangeShortName")
-        or profile.get("exchange")
-        or EXCHANGE_FALLBACK_MAP.get(symbol)
-        or "NASDAQ"
-    )
+    exchange = profile.get("exchange") or EXCHANGE_FALLBACK_MAP.get(symbol) or "NASDAQ"
 
     score, rating = score_stock(momentum)
     performance = round(momentum["performance_2m"], 2)
@@ -439,7 +624,7 @@ def build_result_row(
 
 
 def analyze_single_symbol(symbol, min_performance_2m=15.0):
-    symbol = symbol.strip().upper()
+    symbol = normalize_symbol(symbol)
 
     if not symbol:
         return None
@@ -455,7 +640,7 @@ def analyze_single_symbol(symbol, min_performance_2m=15.0):
             [
                 build_result_row(
                     symbol=symbol,
-                    company="",
+                    company=COMPANY_FALLBACK_MAP.get(symbol, symbol),
                     earnings_date="nicht geprüft",
                     calendar_source="Manuelle Prüfung",
                     momentum=momentum,
@@ -470,28 +655,10 @@ def analyze_single_symbol(symbol, min_performance_2m=15.0):
         return None
 
 
-def parse_extra_symbols(extra_symbols_text):
-    if not extra_symbols_text:
-        return []
-
-    raw_items = extra_symbols_text.replace(";", ",").replace("\n", ",").split(",")
-
-    symbols = []
-
-    for item in raw_items:
-        symbol = item.strip().upper()
-
-        if symbol:
-            symbols.append(symbol)
-
-    return symbols
-
-
 def run_screen(
     lookback_days=7,
     forward_days=14,
     min_performance_2m=15.0,
-    extra_symbols_text="",
 ):
     os.makedirs(DATA_DIR, exist_ok=True)
 
@@ -499,53 +666,9 @@ def run_screen(
     start_date = today - timedelta(days=lookback_days)
     end_date = today + timedelta(days=forward_days)
 
-    try:
-        earnings = get_earnings_calendar(start_date, end_date)
-    except Exception as error:
-        print(f"Earnings-Kalender konnte nicht geladen werden: {error}")
-        earnings = []
-
-    candidates = {}
-    skipped_no_symbol = 0
-
-    for item in earnings:
-        symbol = item.get("symbol")
-        company = (
-            item.get("companyName")
-            or item.get("name")
-            or item.get("company")
-            or "n/a"
-        )
-        earnings_date = item.get("date")
-
-        if not symbol:
-            skipped_no_symbol += 1
-            continue
-
-        symbol = symbol.upper().strip()
-
-        candidates[symbol] = {
-            "symbol": symbol,
-            "company": company,
-            "earnings_date": earnings_date,
-            "calendar_source": "FMP Earnings Calendar",
-        }
-
-    extra_symbols = DEFAULT_EXTRA_SYMBOLS + parse_extra_symbols(extra_symbols_text)
-
-    for symbol in extra_symbols:
-        symbol = symbol.upper().strip()
-
-        if not symbol:
-            continue
-
-        if symbol not in candidates:
-            candidates[symbol] = {
-                "symbol": symbol,
-                "company": COMPANY_FALLBACK_MAP.get(symbol, symbol),
-                "earnings_date": "Watchlist / manuell",
-                "calendar_source": "Watchlist",
-            }
+    candidates, fmp_earnings, finnhub_earnings, skipped_no_symbol = (
+        build_candidates_from_calendars(start_date, end_date)
+    )
 
     all_results = []
     skipped_no_prices = 0
@@ -597,8 +720,8 @@ def run_screen(
         best_performance = all_df.iloc[0]["performance_2m_pct"]
 
     stats = {
-        "earnings_found": len(earnings),
-        "watchlist_added": len(extra_symbols),
+        "fmp_earnings_found": len(fmp_earnings),
+        "finnhub_earnings_found": len(finnhub_earnings),
         "candidates_total": len(candidates),
         "stocks_with_price_data": len(all_df),
         "hits": len(filtered_df),
