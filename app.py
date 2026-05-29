@@ -10,8 +10,8 @@ st.set_page_config(
 
 st.title("Earnings Momentum Screener")
 st.caption(
-    "Universe-basierter Earnings-Momentum-Screener aus FMP + Finnhub + TradingView. "
-    "Ziel: auch unbekannte Aktien finden, die vor Quartalszahlen starkes Kursmomentum zeigen."
+    "Universe-basierter Earnings-Momentum-Screener aus FMP + Finnhub + TradingView "
+    "mit Relative Strength, Stage-2-Score und Marktampel."
 )
 
 st.sidebar.header("Steuerung")
@@ -66,10 +66,16 @@ def rename_columns(df):
             "calendar_source": "Earnings-Quelle",
             "current_close": "Aktueller Kurs",
             "performance_2m_pct": "2M-Performance %",
+            "spy_relative_2m_pct": "Relativ zu SPY %",
+            "qqq_relative_2m_pct": "Relativ zu QQQ %",
             "above_sma_20": "Über 20-Tage-Linie",
             "above_sma_50": "Über 50-Tage-Linie",
+            "above_sma_150": "Über 150-Tage-Linie",
+            "above_sma_200": "Über 200-Tage-Linie",
             "distance_sma_50_pct": "Abstand 50-Tage-Linie %",
-            "score": "Score",
+            "stage2_score": "Stage-2-Score",
+            "stage2_status": "Stage-2-Status",
+            "score": "Gesamtscore",
             "rating": "Rating",
             "status": "Status",
             "interpretation": "Interpretation",
@@ -94,21 +100,35 @@ def show_table(df):
             "Earnings-Datum",
             "Earnings-Quelle",
             "2M-Performance %",
-            "Aktueller Kurs",
-            "Score",
+            "Relativ zu SPY %",
+            "Relativ zu QQQ %",
+            "Stage-2-Score",
+            "Stage-2-Status",
+            "Gesamtscore",
             "Rating",
             "Status",
             "Aktion",
             "Chart öffnen",
             "Interpretation",
+            "Aktueller Kurs",
             "Kursdatenquelle",
             "Über 20-Tage-Linie",
             "Über 50-Tage-Linie",
+            "Über 150-Tage-Linie",
+            "Über 200-Tage-Linie",
             "Abstand 50-Tage-Linie %",
         ],
         column_config={
             "2M-Performance %": st.column_config.NumberColumn(
                 "2M-Performance %",
+                format="%.2f %%",
+            ),
+            "Relativ zu SPY %": st.column_config.NumberColumn(
+                "Relativ zu SPY %",
+                format="%.2f %%",
+            ),
+            "Relativ zu QQQ %": st.column_config.NumberColumn(
+                "Relativ zu QQQ %",
                 format="%.2f %%",
             ),
             "Aktueller Kurs": st.column_config.NumberColumn(
@@ -119,8 +139,13 @@ def show_table(df):
                 "Abstand 50-Tage-Linie %",
                 format="%.2f %%",
             ),
-            "Score": st.column_config.ProgressColumn(
-                "Score",
+            "Stage-2-Score": st.column_config.ProgressColumn(
+                "Stage-2-Score",
+                min_value=0,
+                max_value=100,
+            ),
+            "Gesamtscore": st.column_config.ProgressColumn(
+                "Gesamtscore",
                 min_value=0,
                 max_value=100,
             ),
@@ -132,19 +157,55 @@ def show_table(df):
     )
 
 
+def show_market_regime(stats):
+    market = stats.get("market_regime", {})
+
+    if not market:
+        st.warning("Marktampel konnte nicht berechnet werden.")
+        return
+
+    regime = market.get("regime", "unbekannt")
+    interpretation = market.get("interpretation", "")
+
+    if regime == "grün":
+        st.success(f"Marktampel: GRÜN — {interpretation}")
+    elif regime == "neutral":
+        st.warning(f"Marktampel: NEUTRAL — {interpretation}")
+    elif regime == "rot":
+        st.error(f"Marktampel: ROT — {interpretation}")
+    else:
+        st.info("Marktampel: unbekannt")
+
+    spy = market.get("spy_status", {})
+    qqq = market.get("qqq_status", {})
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    col1.metric("SPY Status", spy.get("status", "n/a"))
+    col2.metric(
+        "SPY 2M",
+        f"{spy.get('perf_2m'):.2f} %" if spy.get("perf_2m") is not None else "n/a",
+    )
+    col3.metric("QQQ Status", qqq.get("status", "n/a"))
+    col4.metric(
+        "QQQ 2M",
+        f"{qqq.get('perf_2m'):.2f} %" if qqq.get("perf_2m") is not None else "n/a",
+    )
+
+
 def show_explanation_box(min_performance):
     st.markdown(
         f"""
 ### Lesart des Screeners
 
 - **Treffer**: Aktie liegt bei mindestens **{min_performance:.0f} %** 2-Monats-Performance.
-- **Knapp darunter**: Aktie liegt maximal 5 Prozentpunkte unter deinem Filter.
-- **Unter Filter**: Aktie hat Earnings im Zeitraum, aber der Kurs zeigt keine ausreichende Vorstärke.
-- **Schwach**: negatives Momentum, für diesen Ansatz uninteressant.
-- **Earnings-Quelle** zeigt, ob die Aktie aus FMP, Finnhub, TradingView oder mehreren Quellen kommt.
+- **Relativ zu SPY / QQQ**: zeigt, ob die Aktie den Gesamtmarkt oder den Tech-Index schlägt.
+- **Stage-2-Score**: technische Trendqualität nach Minervini/Weinstein-Logik.
+- **Stage 2 stark**: Kurs über wichtigen gleitenden Durchschnitten, 200-Tage-Linie steigt, Nähe zum Hoch, Abstand zum Tief.
+- **Gesamtscore**: Mischung aus Momentum, Trend, relativer Stärke und Stage-2-Qualität.
+- **Marktampel**: prüft SPY und QQQ. Bei roter Ampel sind Earnings-Breakouts riskanter.
 - **Chart öffnen** öffnet den TradingView-Chart zur visuellen Prüfung.
 - **WKN** wird angezeigt, wenn sie in der lokalen Mapping-Liste hinterlegt ist.
-- **Kursdatenquelle** zeigt, ob die Kursdaten von FMP oder vom Fallback Stooq kommen.
 """
     )
 
@@ -159,9 +220,7 @@ if manual_check:
         )
 
     if manual_df is None or manual_df.empty:
-        st.error(
-            "Für diesen Ticker konnten keine ausreichenden Kursdaten geladen werden."
-        )
+        st.error("Für diesen Ticker konnten keine ausreichenden Kursdaten geladen werden.")
     else:
         row = manual_df.iloc[0]
 
@@ -170,7 +229,7 @@ if manual_check:
         col2.metric("Ticker", row["symbol"])
         col3.metric("WKN", row["wkn"])
         col4.metric("2M-Performance", f"{row['performance_2m_pct']:.2f} %")
-        col5.metric("Status", row["status"])
+        col5.metric("Stage-2-Score", int(row["stage2_score"]))
 
         if row["status"] == "Treffer":
             st.success(row["interpretation"])
@@ -194,13 +253,20 @@ if not run_now:
 
 
 with st.spinner(
-    "Screener läuft. Earnings-Kalender von FMP + Finnhub + TradingView und Kursdaten werden geladen..."
+    "Screener läuft. Earnings-Kalender, Kursdaten, Relative Strength, Stage-2-Score und Marktampel werden geladen..."
 ):
     hits_df, all_df, stats = run_screen(
         lookback_days=lookback_days,
         forward_days=forward_days,
         min_performance_2m=min_performance,
     )
+
+
+st.subheader("Marktumfeld")
+
+show_market_regime(stats)
+
+st.divider()
 
 
 st.subheader("Kurzfazit")
@@ -242,7 +308,7 @@ st.metric("Momentum-Filter", f">{stats['min_performance_2m']:.0f} %")
 
 if stats["best_symbol"] is not None:
     st.metric(
-        "Bestes Momentum",
+        "Bestes Setup",
         f"{stats['best_company']} ({stats['best_symbol']})",
         f"{stats['best_performance']:.2f} %",
     )
@@ -275,7 +341,7 @@ else:
 
 st.divider()
 
-st.subheader("Alle geprüften Kandidaten — sortiert nach Momentum")
+st.subheader("Alle geprüften Kandidaten — sortiert nach Gesamtscore")
 
 status_filter = st.multiselect(
     "Status filtern",
@@ -289,20 +355,38 @@ source_filter = st.multiselect(
     default=sorted(display_all["Earnings-Quelle"].unique()),
 )
 
+stage_filter = st.multiselect(
+    "Stage-2-Status filtern",
+    options=sorted(display_all["Stage-2-Status"].unique()),
+    default=sorted(display_all["Stage-2-Status"].unique()),
+)
+
 filtered_all = display_all[
     display_all["Status"].isin(status_filter)
     & display_all["Earnings-Quelle"].isin(source_filter)
+    & display_all["Stage-2-Status"].isin(stage_filter)
 ]
 
 show_table(filtered_all)
 
 
-st.subheader("Momentum-Ranking")
+st.subheader("Top 15 nach Gesamtscore")
 
-top15 = filtered_all.sort_values("2M-Performance %", ascending=False).head(15)
+top15 = filtered_all.sort_values("Gesamtscore", ascending=False).head(15)
 
 st.bar_chart(
     top15,
+    x="Ticker",
+    y="Gesamtscore",
+)
+
+
+st.subheader("Top 15 nach 2M-Performance")
+
+top15_momentum = filtered_all.sort_values("2M-Performance %", ascending=False).head(15)
+
+st.bar_chart(
+    top15_momentum,
     x="Ticker",
     y="2M-Performance %",
 )
